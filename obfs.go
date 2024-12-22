@@ -1,9 +1,9 @@
 package libcore
 
 import (
+	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
 	"github.com/v2fly/v2ray-core/v5/proxy/sip003/self"
-	"github.com/v2fly/v2ray-core/v5/transport/internet"
 
 	"libcore/clash/transport/simple-obfs"
 )
@@ -58,11 +58,11 @@ func (p *obfsLocalPlugin) InitStreamPlugin(remotePort string, pluginOpts string)
 	return nil
 }
 
-func (p *obfsLocalPlugin) StreamConn(connection internet.Connection) internet.Connection {
+func (p *obfsLocalPlugin) StreamConn(conn net.Conn) net.Conn {
 	if !p.tls {
-		return obfs.NewHTTPObfs(connection, p.host, p.port)
+		return obfs.NewHTTPObfs(conn, p.host, p.port)
 	} else {
-		return obfs.NewTLSObfs(connection, p.host)
+		return obfs.NewTLSObfs(conn, p.host)
 	}
 }
 

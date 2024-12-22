@@ -6,9 +6,9 @@ import (
 	"strconv"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
+	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
 	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
-	"github.com/v2fly/v2ray-core/v5/transport/internet"
 
 	"libcore/clash/transport/ssr/obfs"
 	"libcore/clash/transport/ssr/protocol"
@@ -88,7 +88,7 @@ func (p *shadowsocksrPlugin) Close() error {
 	return nil
 }
 
-func (p *shadowsocksrPlugin) StreamConn(conn internet.Connection) internet.Connection {
+func (p *shadowsocksrPlugin) StreamConn(conn net.Conn) net.Conn {
 	return p.o.StreamConn(conn)
 }
 
