@@ -2,7 +2,6 @@ package obfs
 
 import (
 	"bytes"
-	"encoding/hex"
 	"io"
 	"math/rand"
 	"net"
@@ -15,6 +14,11 @@ import (
 func init() {
 	register("http_simple", newHTTPSimple, 0)
 }
+
+const (
+	hextable = "0123456789abcdef"
+	charset  = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+)
 
 type httpObfs struct {
 	*Base
@@ -75,6 +79,8 @@ func (c *httpConn) Write(b []byte) (int, error) {
 	if c.hasSentHeader {
 		return c.Conn.Write(b)
 	}
+	c.hasSentHeader = true
+
 	// 30: head length
 	headLength := c.IVSize + 30
 
@@ -128,25 +134,23 @@ func (c *httpConn) Write(b []byte) (int, error) {
 	buf.Write(b)
 	_, err := c.Conn.Write(buf.Bytes())
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
-	c.hasSentHeader = true
 	return bLength, nil
 }
 
 func packURLEncodedHeadData(buf *bytes.Buffer, data []byte) {
-	dataLength := len(data)
-	for i := 0; i < dataLength; i++ {
-		buf.WriteRune('%')
-		buf.WriteString(hex.EncodeToString(data[i : i+1]))
+	for i := 0; i < len(data); i++ {
+		buf.WriteByte('%')
+		buf.WriteByte(hextable[data[i]>>4])
+		buf.WriteByte(hextable[data[i]&0x0f])
 	}
 }
 
 func packBoundary(buf *bytes.Buffer) {
 	buf.WriteString("Content-Type: multipart/form-data; boundary=")
-	set := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 	for i := 0; i < 32; i++ {
-		buf.WriteByte(set[rand.Intn(62)])
+		buf.WriteByte(charset[rand.Intn(62)])
 	}
 	buf.WriteString("\r\n")
 }
