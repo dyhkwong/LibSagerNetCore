@@ -25,20 +25,34 @@ func UrlTest(instance *V2RayInstance, inbound string, link string, timeout int32
 			return instance.dialContext(ctx, dest)
 		},
 	}
-	req, err := http.NewRequestWithContext(context.Background(), "GET", link, nil)
-	if err != nil {
-		return 0, err
-	}
-	start := time.Now()
-	resp, err := (&http.Client{
+	httpClient := &http.Client{
 		Transport: transport,
 		Timeout:   time.Duration(timeout) * time.Millisecond,
-	}).Do(req)
-	if err == nil && resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("unexcpted response status: %d", resp.StatusCode)
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Millisecond)
+	defer cancel()
+	req, err := http.NewRequest("GET", link, nil)
 	if err != nil {
 		return 0, err
 	}
-	return int32(time.Since(start).Milliseconds()), nil
+	durationChan := make(chan time.Duration)
+	var resp *http.Response
+	start := time.Now()
+	go func() {
+		resp, err = httpClient.Do(req.WithContext(ctx))
+		durationChan <- time.Since(start)
+	}()
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	case duration := <-durationChan:
+		if err != nil {
+			return 0, err
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+			return 0, fmt.Errorf("unexpected response status: %d", resp.StatusCode)
+		}
+		return int32(duration.Milliseconds()), nil
+	}
 }
