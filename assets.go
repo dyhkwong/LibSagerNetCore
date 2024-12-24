@@ -18,7 +18,6 @@ const (
 	geositeDat         = "geosite.dat"
 	geoipVersion       = "geoip.version.txt"
 	geositeVersion     = "geosite.version.txt"
-	coreVersion        = "core.version.txt"
 	mozillaIncludedPem = "mozilla_included.pem"
 )
 
