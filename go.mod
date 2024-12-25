@@ -8,7 +8,6 @@ require (
 	github.com/quic-go/quic-go v0.48.2
 	github.com/sagernet/gomobile v0.1.4
 	github.com/sirupsen/logrus v1.9.3
-	github.com/ulikunitz/xz v0.5.12
 	github.com/v2fly/v2ray-core/v5 v5.23.0
 	github.com/wzshiming/socks5 v0.5.1
 	golang.org/x/net v0.33.0
