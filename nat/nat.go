@@ -11,6 +11,7 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/header"
 	"gvisor.dev/gvisor/pkg/tcpip/header/parse"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
+	"libcore/comm"
 	"libcore/tun"
 )
 
@@ -44,8 +45,13 @@ func New(dev int32, mtu int32, handler tun.Handler, ipv6Mode int32, errorHandler
 	if err != nil {
 		return nil, err
 	}
-	go tcpServer.dispatchLoop()
 	t.tcpForwarder = tcpServer
+	if t.ipv6Mode != comm.IPv6Only {
+		go tcpServer.dispatchLoop(tcpServer.listener4)
+	}
+	if t.ipv6Mode != comm.IPv6Disable {
+		go tcpServer.dispatchLoop(tcpServer.listener6)
+	}
 
 	go t.dispatchLoop()
 	return t, nil

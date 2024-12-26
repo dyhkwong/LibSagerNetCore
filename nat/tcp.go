@@ -1,7 +1,6 @@
 package nat
 
 import (
-	"errors"
 	"net"
 	"time"
 
@@ -15,44 +14,50 @@ import (
 )
 
 type tcpForwarder struct {
-	tun      *SystemTun
-	port     uint16
-	listener *net.TCPListener
-	sessions *cache.LruCache
+	tun       *SystemTun
+	port4     uint16
+	port6     uint16
+	listener4 *net.TCPListener
+	listener6 *net.TCPListener
+	sessions  *cache.LruCache
 }
 
 func newTcpForwarder(tun *SystemTun) (*tcpForwarder, error) {
-	var network string
-	address := &net.TCPAddr{}
-	if tun.ipv6Mode == comm.IPv6Disable {
-		network = "tcp4"
+	tcpForwarder := &tcpForwarder{
+		tun:      tun,
+		sessions: cache.New(cache.WithAge(300), cache.WithUpdateAgeOnGet()),
+	}
+	if tun.ipv6Mode != comm.IPv6Only {
+		address := &net.TCPAddr{}
 		address.IP = net.IP(vlanClient4.AsSlice())
-	} else {
-		network = "tcp"
-		address.IP = net.IPv6zero
+		listener, err := net.ListenTCP("tcp4", address)
+		if err != nil {
+			return nil, newError("failed to create tcp forwarder at ", address.IP).Base(err)
+		}
+		tcpForwarder.listener4 = listener
+		tcpForwarder.port4 = uint16(listener.Addr().(*net.TCPAddr).Port)
+		newError("tcp forwarder started at ", listener.Addr().(*net.TCPAddr)).AtDebug().WriteToLog()
 	}
-	listener, err := net.ListenTCP(network, address)
-	if err != nil {
-		return nil, newError("failed to create tcp forwarder at ", address.IP).Base(err)
+	if tun.ipv6Mode != comm.IPv6Disable {
+		address := &net.TCPAddr{}
+		address.IP = net.IP(vlanClient6.AsSlice())
+		listener, err := net.ListenTCP("tcp6", address)
+		if err != nil {
+			return nil, newError("failed to create tcp forwarder at ", address.IP).Base(err)
+		}
+		tcpForwarder.listener6 = listener
+		tcpForwarder.port6 = uint16(listener.Addr().(*net.TCPAddr).Port)
+		newError("tcp forwarder started at ", listener.Addr().(*net.TCPAddr)).AtDebug().WriteToLog()
 	}
-	addr := listener.Addr().(*net.TCPAddr)
-	port := uint16(addr.Port)
-	newError("tcp forwarder started at ", addr).AtDebug().WriteToLog()
-	return &tcpForwarder{tun, port, listener, cache.New(
-		cache.WithAge(300),
-		cache.WithUpdateAgeOnGet(),
-	)}, nil
+	return tcpForwarder, nil
 }
 
-func (t *tcpForwarder) dispatch() (bool, error) {
-	conn, err := t.listener.AcceptTCP()
+func (t *tcpForwarder) dispatch(listener *net.TCPListener) (bool, error) {
+	conn, err := listener.AcceptTCP()
 	if err != nil {
 		return true, err
 	}
 	addr := conn.RemoteAddr().(*net.TCPAddr)
-	if ip4 := addr.IP.To4(); ip4 != nil {
-		addr.IP = ip4
-	}
 	key := peerKey{tcpip.AddrFromSlice(addr.IP), uint16(addr.Port)}
 	var session *peerValue
 	iSession, ok := t.sessions.Get(peerKey{key.destinationAddress, key.sourcePort})
@@ -83,17 +88,13 @@ func (t *tcpForwarder) dispatch() (bool, error) {
 	return false, nil
 }
 
-func (t *tcpForwarder) dispatchLoop() {
+func (t *tcpForwarder) dispatchLoop(listener *net.TCPListener) {
 	for {
-		stop, err := t.dispatch()
+		stop, err := t.dispatch(listener)
 		if err != nil {
 			e := newError("dispatch tcp conn failed").Base(err)
 			e.WriteToLog()
 			if stop {
-				if !errors.Is(err, net.ErrClosed) {
-					t.Close()
-					t.tun.errorHandler(e.String())
-				}
 				return
 			}
 		}
@@ -108,7 +109,7 @@ func (t *tcpForwarder) processIPv4(ipHdr header.IPv4, tcpHdr header.TCP) {
 
 	var session *peerValue
 
-	if sourcePort != t.port {
+	if sourcePort != t.port4 {
 
 		key := peerKey{destinationAddress, sourcePort}
 		iSession, ok := t.sessions.Get(key)
@@ -121,7 +122,7 @@ func (t *tcpForwarder) processIPv4(ipHdr header.IPv4, tcpHdr header.TCP) {
 
 		ipHdr.SetSourceAddress(destinationAddress)
 		ipHdr.SetDestinationAddress(vlanClient4)
-		tcpHdr.SetDestinationPort(t.port)
+		tcpHdr.SetDestinationPort(t.port4)
 
 	} else {
 
@@ -156,7 +157,7 @@ func (t *tcpForwarder) processIPv6(ipHdr header.IPv6, tcpHdr header.TCP) {
 
 	var session *peerValue
 
-	if sourcePort != t.port {
+	if sourcePort != t.port6 {
 
 		key := peerKey{destinationAddress, sourcePort}
 		iSession, ok := t.sessions.Get(key)
@@ -169,7 +170,7 @@ func (t *tcpForwarder) processIPv6(ipHdr header.IPv6, tcpHdr header.TCP) {
 
 		ipHdr.SetSourceAddress(destinationAddress)
 		ipHdr.SetDestinationAddress(vlanClient6)
-		tcpHdr.SetDestinationPort(t.port)
+		tcpHdr.SetDestinationPort(t.port6)
 
 	} else {
 
@@ -196,5 +197,7 @@ func (t *tcpForwarder) processIPv6(ipHdr header.IPv6, tcpHdr header.TCP) {
 }
 
 func (t *tcpForwarder) Close() error {
-	return t.listener.Close()
+	_ = t.listener4.Close()
+	_ = t.listener6.Close()
+	return nil
 }
