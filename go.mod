@@ -11,7 +11,7 @@ require (
 	github.com/v2fly/v2ray-core/v5 v5.23.0
 	github.com/wzshiming/socks5 v0.5.1
 	golang.org/x/net v0.33.0
-	golang.org/x/sys v0.28.0
+	golang.org/x/sys v0.29.0
 	gvisor.dev/gvisor v0.0.0-20240916094835-a174eb65023f
 )
 
@@ -91,6 +91,6 @@ replace (
 	github.com/apernet/hysteria/core/v2 => github.com/JimmyHuang454/hysteria/core/v2 v2.0.0-20240724161647-b3347cf6334d
 	github.com/lunixbochs/struc => github.com/xiaokangwang/struc v0.0.0-20231031203518-0e381172f248
 	//github.com/v2fly/v2ray-core/v5 => ../../../v2ray-core
-	github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.23.1-0.20250104100359-ad69c3cf8556
+	github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.23.1-0.20250106054528-0e56c0a70eaf
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f => google.golang.org/genproto v0.0.0-20230526161137-0005af68ea54 // fix ambiguous import error
 )
