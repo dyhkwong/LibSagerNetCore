@@ -78,7 +78,12 @@ func (dialer protectedDialer) dial(ctx context.Context, source v2rayNet.Address,
 	}
 
 	if sockopt != nil {
-		internet.ApplySockopt(sockopt, destination, uintptr(fd), ctx)
+		switch destination.Network {
+		case v2rayNet.Network_TCP:
+			internet.ApplySockopt(destination.Network, destination.Address, uintptr(fd), sockopt)
+		case v2rayNet.Network_UDP:
+			internet.ApplySockopt(destination.Network, source, uintptr(fd), sockopt)
+		}
 	}
 
 	switch destination.Network {
