@@ -19,7 +19,6 @@ require (
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/aead/cmac v0.0.0-20160719120800-7af84192f0b1 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
-	github.com/apernet/hysteria/core/v2 v2.6.0 // indirect
 	github.com/apernet/hysteria/extras/v2 v2.6.0 // indirect
 	github.com/apernet/quic-go v0.48.2-0.20241104191913-cb103fcecfe7 // indirect
 	github.com/boljen/go-bitmap v0.0.0-20151001105940-23cd2fb0ce7d // indirect
@@ -36,7 +35,7 @@ require (
 	github.com/klauspost/cpuid v1.2.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/klauspost/reedsolomon v1.9.3 // indirect
-	github.com/lunixbochs/struc v0.0.0-20241101090106-8d528fa2c543 // indirect
+	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
 	github.com/miekg/dns v1.1.62 // indirect
 	github.com/mustafaturan/bus v1.0.2 // indirect
 	github.com/mustafaturan/monoton v1.0.0 // indirect
@@ -64,7 +63,9 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/v2fly/BrowserBridge v0.0.0-20210430233438-0570fc1d7d08 // indirect
+	github.com/v2fly/hysteria/core/v2 v2.0.0-20250113081444-b0a0747ac7ab // indirect
 	github.com/v2fly/ss-bloomring v0.0.0-20210312155135-28617310f63e // indirect
+	github.com/v2fly/struc v0.0.0-20241227015403-8e8fa1badfd6 // indirect
 	github.com/xiaokangwang/VLite v0.0.0-20231225174116-75fa4b06e9f2 // indirect
 	github.com/xtaci/smux v1.5.15 // indirect
 	github.com/xtls/quic-go v0.48.2 // indirect
@@ -81,16 +82,12 @@ require (
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241015192408-796eee8c2d53 // indirect
-	google.golang.org/grpc v1.69.2 // indirect
-	google.golang.org/protobuf v1.36.2 // indirect
+	google.golang.org/grpc v1.69.4 // indirect
+	google.golang.org/protobuf v1.36.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
 
-replace (
-	github.com/apernet/hysteria/core/v2 => github.com/JimmyHuang454/hysteria/core/v2 v2.0.0-20240724161647-b3347cf6334d
-	github.com/lunixbochs/struc => github.com/xiaokangwang/struc v0.0.0-20231031203518-0e381172f248
-	//github.com/v2fly/v2ray-core/v5 => ../../../v2ray-core
-	github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.24.1-0.20250110140856-1d9ce888dcfe
-	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f => google.golang.org/genproto v0.0.0-20230526161137-0005af68ea54 // fix ambiguous import error
-)
+//replace github.com/v2fly/v2ray-core/v5 => ../../../v2ray-core
+
+replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.25.1-0.20250118160010-d47d2f14a0c3
