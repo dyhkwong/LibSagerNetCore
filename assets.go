@@ -7,12 +7,12 @@ import (
 	"sync"
 
 	"github.com/sagernet/gomobile/asset"
-	"github.com/sirupsen/logrus"
 	"github.com/v2fly/v2ray-core/v5/common/platform/filesystem"
 )
 
 const (
 	mozillaIncludedPem = "mozilla_included.pem"
+	androidIncludedPem = "android_included.pem"
 )
 
 var (
@@ -22,14 +22,10 @@ var (
 )
 
 var (
-	assetsAccess *sync.Mutex
+	assetsAccess sync.Mutex
 )
 
-type BoolFunc interface {
-	Invoke() bool
-}
-
-func InitializeV2Ray(internalAssets string, externalAssets string, prefix string, useSystemCerts BoolFunc) error {
+func InitializeV2Ray(internalAssets string, externalAssets string, prefix string, caProvider int32) error {
 	assetsPrefix = prefix
 	internalAssetsPath = internalAssets
 	externalAssetsPath = externalAssets
@@ -73,25 +69,12 @@ func InitializeV2Ray(internalAssets string, externalAssets string, prefix string
 		return filesystem.NewFileSeeker(path)
 	}
 
-	assetsAccess = new(sync.Mutex)
-	assetsAccess.Lock()
-	go func() {
-
-		defer assetsAccess.Unlock()
-
-		err := extractRootCACertsPem()
-		if err != nil {
-			logrus.Warn(newError("failed to extract root ca certs from assets").Base(err))
-			return
-		}
-
-		UpdateSystemRoots(useSystemCerts.Invoke())
-	}()
+	UpdateSystemRoots(caProvider)
 
 	return nil
 }
 
-func extractRootCACertsPem() error {
+func extractMozillaCAPem() error {
 	path := internalAssetsPath + mozillaIncludedPem
 	sumPath := path + ".sha256sum"
 	sumInternal, err := asset.Open(mozillaIncludedPem + ".sha256sum")
