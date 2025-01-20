@@ -192,18 +192,11 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 		},
 	})
 
-	if !config.Protect {
-		localdns.SetLookupFunc(nil)
-		if config.LocalResolver.SupportExchange() {
-			localdns.SetRawQueryFunc(nil)
-		}
-	} else {
-		localdns.SetLookupFunc(lookupFunc)
-		if config.LocalResolver.SupportExchange() {
-			localdns.SetRawQueryFunc(func(b []byte) ([]byte, error) {
-				return config.LocalResolver.Exchange(b)
-			})
-		}
+	localdns.SetLookupFunc(lookupFunc)
+	if config.LocalResolver.SupportExchange() {
+		localdns.SetRawQueryFunc(func(b []byte) ([]byte, error) {
+			return config.LocalResolver.Exchange(b)
+		})
 	}
 
 	return t, nil
