@@ -5,10 +5,10 @@ go 1.22.0
 require (
 	github.com/ccding/go-stun v0.1.5
 	github.com/golang/protobuf v1.5.4
-	github.com/quic-go/quic-go v0.48.2
+	github.com/quic-go/quic-go v0.49.0
 	github.com/sagernet/gomobile v0.1.4
 	github.com/sirupsen/logrus v1.9.3
-	github.com/v2fly/v2ray-core/v5 v5.24.0
+	github.com/v2fly/v2ray-core/v5 v5.25.1
 	github.com/wzshiming/socks5 v0.5.1
 	golang.org/x/net v0.34.0
 	golang.org/x/sys v0.29.0
@@ -90,4 +90,4 @@ require (
 
 //replace github.com/v2fly/v2ray-core/v5 => ../../../v2ray-core
 
-replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.25.1-0.20250118160010-d47d2f14a0c3
+replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.25.2-0.20250123155214-979d7501ed86
