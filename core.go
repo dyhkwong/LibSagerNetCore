@@ -54,7 +54,7 @@ func StunLegacyTest(serverAddress string, useSOCKS5 bool, socksPort int32, dnsPo
 	if host != nil {
 		result.Host = host.String()
 	}
-	if natType != nil {
+	if natType > 0 {
 		result.NatType = natType.String()
 	}
 	return result
