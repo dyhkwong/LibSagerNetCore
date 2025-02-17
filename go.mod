@@ -8,11 +8,11 @@ require (
 	github.com/quic-go/quic-go v0.49.0
 	github.com/sagernet/gomobile v0.1.4
 	github.com/sirupsen/logrus v1.9.3
-	github.com/v2fly/v2ray-core/v5 v5.27.0
+	github.com/v2fly/v2ray-core/v5 v5.29.0
 	github.com/wzshiming/socks5 v0.5.1
 	golang.org/x/net v0.35.0
 	golang.org/x/sys v0.30.0
-	gvisor.dev/gvisor v0.0.0-20250203181318-1be12ee1a006
+	gvisor.dev/gvisor v0.0.0-20250207211332-a025ffd3b3e0
 )
 
 require (
@@ -89,4 +89,4 @@ require (
 
 //replace github.com/v2fly/v2ray-core/v5 => ../../../v2ray-core
 
-replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.28.1-0.20250212120953-5dae0317de03
+replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.29.1-0.20250217073426-da2fa5011267
