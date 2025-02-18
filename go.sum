@@ -54,8 +54,8 @@ github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZm
 github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 h1:BS21ZUJ/B5X2UVUbczfmdWH7GapPWAhxcMsDnjJTU1E=
 github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165/go.mod h1:c9O8+fpSOX1DM8cPNSkX/qsBWdkD4yd2dpciOWQjpBw=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
-github.com/dyhkwong/v2ray-core/v5 v5.29.1-0.20250217073426-da2fa5011267 h1:ZEKuhlO8ucASdfqWeUHoQR7Zn0MFr1nN7Uo/cHkdF7s=
-github.com/dyhkwong/v2ray-core/v5 v5.29.1-0.20250217073426-da2fa5011267/go.mod h1:sl3M/wtqb4yL4snG1ZAoVtWMepGAZ4fEqQRudLxkcvQ=
+github.com/dyhkwong/v2ray-core/v5 v5.29.1-0.20250218082509-1a4ea4658272 h1:HWSAvf7Arrtob2D1xFB9P0e26QcPTz4h/7OEFVBsfok=
+github.com/dyhkwong/v2ray-core/v5 v5.29.1-0.20250218082509-1a4ea4658272/go.mod h1:sl3M/wtqb4yL4snG1ZAoVtWMepGAZ4fEqQRudLxkcvQ=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4IgpuI1SZQ=
