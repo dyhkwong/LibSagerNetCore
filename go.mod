@@ -5,20 +5,21 @@ go 1.23.1
 require (
 	github.com/ccding/go-stun v0.1.5
 	github.com/golang/protobuf v1.5.4
-	github.com/quic-go/quic-go v0.49.0
+	github.com/quic-go/quic-go v0.50.0
 	github.com/sagernet/gomobile v0.1.4
 	github.com/sirupsen/logrus v1.9.3
-	github.com/v2fly/v2ray-core/v5 v5.29.0
+	github.com/v2fly/v2ray-core/v5 v5.29.1
 	github.com/wzshiming/socks5 v0.5.1
 	golang.org/x/net v0.35.0
 	golang.org/x/sys v0.30.0
-	gvisor.dev/gvisor v0.0.0-20250207211332-a025ffd3b3e0
+	gvisor.dev/gvisor v0.0.0-20250215002057-313350f3e697
 )
 
 require (
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/aead/cmac v0.0.0-20160719120800-7af84192f0b1 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
+	github.com/anytls/sing-anytls v0.0.3 // indirect
 	github.com/apernet/hysteria/extras/v2 v2.6.1 // indirect
 	github.com/apernet/quic-go v0.49.1-0.20250204013113-43c72b1281a0 // indirect
 	github.com/boljen/go-bitmap v0.0.0-20151001105940-23cd2fb0ce7d // indirect
@@ -71,7 +72,7 @@ require (
 	github.com/xtls/reality v0.0.0-20240909153216-e26ae2305463 // indirect
 	go.uber.org/mock v0.5.0 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
-	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/crypto v0.34.0 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
@@ -89,4 +90,4 @@ require (
 
 //replace github.com/v2fly/v2ray-core/v5 => ../../../v2ray-core
 
-replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.29.1-0.20250218082509-1a4ea4658272
+replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.29.2-0.20250224083300-cbc161be6a02
