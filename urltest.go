@@ -22,7 +22,7 @@ func UrlTest(instance *V2RayInstance, inbound string, link string, timeout int32
 			if inbound != "" {
 				ctx = session.ContextWithInbound(ctx, &session.Inbound{Tag: inbound})
 			}
-			return instance.dialContext(ctx, dest)
+			return instance.dial(ctx, dest)
 		},
 	}
 	httpClient := &http.Client{
@@ -35,24 +35,14 @@ func UrlTest(instance *V2RayInstance, inbound string, link string, timeout int32
 	if err != nil {
 		return 0, err
 	}
-	durationChan := make(chan time.Duration)
-	var resp *http.Response
 	start := time.Now()
-	go func() {
-		resp, err = httpClient.Do(req.WithContext(ctx))
-		durationChan <- time.Since(start)
-	}()
-	select {
-	case <-ctx.Done():
-		return 0, ctx.Err()
-	case duration := <-durationChan:
-		if err != nil {
-			return 0, err
-		}
-		resp.Body.Close()
-		if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
-			return 0, fmt.Errorf("unexpected response status: %d", resp.StatusCode)
-		}
-		return int32(duration.Milliseconds()), nil
+	resp, err := httpClient.Do(req.WithContext(ctx))
+	if err != nil {
+		return 0, err
 	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("unexpected response status: %d", resp.StatusCode)
+	}
+	return int32(time.Since(start).Milliseconds()), nil
 }

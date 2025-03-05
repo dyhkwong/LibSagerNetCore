@@ -10,7 +10,6 @@ import (
 
 	"github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common/net"
-	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
 	"github.com/v2fly/v2ray-core/v5/features"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/extension"
@@ -19,7 +18,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/features/stats"
 	"github.com/v2fly/v2ray-core/v5/infra/conf/serial"
 	_ "github.com/v2fly/v2ray-core/v5/main/distro/all"
-	"github.com/v2fly/v2ray-core/v5/transport/internet/udp"
 )
 
 func GetV2RayVersion() string {
@@ -110,25 +108,16 @@ func (instance *V2RayInstance) Close() error {
 //go:linkname toContext github.com/v2fly/v2ray-core/v5.toContext
 func toContext(ctx context.Context, v *core.Instance) context.Context
 
-func (instance *V2RayInstance) dialContext(ctx context.Context, destination net.Destination) (net.Conn, error) {
+func (instance *V2RayInstance) dial(ctx context.Context, destination net.Destination) (net.Conn, error) {
 	if !instance.started {
 		return nil, os.ErrInvalid
 	}
-	ctx = toContext(ctx, instance.core)
-	r, err := instance.dispatcher.Dispatch(ctx, destination)
-	if err != nil {
-		return nil, err
-	}
-	var readerOpt cnc.ConnectionOption
-	if destination.Network == net.Network_TCP {
-		readerOpt = cnc.ConnectionOutputMulti(r.Reader)
-	} else {
-		readerOpt = cnc.ConnectionOutputMultiUDP(r.Reader)
-	}
-	return cnc.NewConnection(cnc.ConnectionInputMulti(r.Writer), readerOpt), nil
+	return core.Dial(ctx, instance.core, destination)
 }
 
 func (instance *V2RayInstance) dialUDP(ctx context.Context) (net.PacketConn, error) {
-	ctx = toContext(ctx, instance.core)
-	return udp.DialDispatcher(ctx, instance.dispatcher)
+	if !instance.started {
+		return nil, os.ErrInvalid
+	}
+	return core.DialUDP(ctx, instance.core)
 }
