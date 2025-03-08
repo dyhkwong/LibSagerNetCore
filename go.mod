@@ -8,18 +8,18 @@ require (
 	github.com/quic-go/quic-go v0.50.0
 	github.com/sagernet/gomobile v0.1.4
 	github.com/sirupsen/logrus v1.9.3
-	github.com/v2fly/v2ray-core/v5 v5.29.1
-	github.com/wzshiming/socks5 v0.5.1
-	golang.org/x/net v0.35.0
-	golang.org/x/sys v0.30.0
-	gvisor.dev/gvisor v0.0.0-20250215002057-313350f3e697
+	github.com/v2fly/v2ray-core/v5 v5.29.2
+	github.com/wzshiming/socks5 v0.5.2
+	golang.org/x/net v0.37.0
+	golang.org/x/sys v0.31.0
+	gvisor.dev/gvisor v0.0.0-20250304193240-12d3e07d4ad6
 )
 
 require (
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/aead/cmac v0.0.0-20160719120800-7af84192f0b1 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
-	github.com/anytls/sing-anytls v0.0.3 // indirect
+	github.com/anytls/sing-anytls v0.0.6 // indirect
 	github.com/apernet/hysteria/extras/v2 v2.6.1 // indirect
 	github.com/apernet/quic-go v0.49.1-0.20250204013113-43c72b1281a0 // indirect
 	github.com/boljen/go-bitmap v0.0.0-20151001105940-23cd2fb0ce7d // indirect
@@ -55,7 +55,7 @@ require (
 	github.com/refraction-networking/utls v1.6.7 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/sagernet/quic-go v0.49.0-beta.1 // indirect
-	github.com/sagernet/sing v0.6.1 // indirect
+	github.com/sagernet/sing v0.6.2 // indirect
 	github.com/sagernet/sing-quic v0.4.0 // indirect
 	github.com/sagernet/sing-shadowsocks v0.2.7 // indirect
 	github.com/sagernet/sing-shadowsocks2 v0.2.0 // indirect
@@ -72,22 +72,22 @@ require (
 	github.com/xtls/reality v0.0.0-20240909153216-e26ae2305463 // indirect
 	go.uber.org/mock v0.5.0 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
-	golang.org/x/crypto v0.34.0 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/mod v0.21.0 // indirect
-	golang.org/x/sync v0.11.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20241202173237-19429a94021a // indirect
-	google.golang.org/grpc v1.70.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect
+	google.golang.org/grpc v1.71.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	lukechampine.com/blake3 v1.3.0 // indirect
+	lukechampine.com/blake3 v1.4.0 // indirect
 )
 
 //replace github.com/v2fly/v2ray-core/v5 => ../../../v2ray-core
 
-replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.29.2-0.20250224083300-cbc161be6a02
+replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.29.3-0.20250308085525-3ec191619250
