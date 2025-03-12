@@ -12,6 +12,7 @@ import (
 
 func UrlTest(instance *V2RayInstance, inbound string, link string, timeout int32) (int32, error) {
 	transport := &http.Transport{
+		ForceAttemptHTTP2:   true,
 		TLSHandshakeTimeout: time.Duration(timeout) * time.Millisecond,
 		DisableKeepAlives:   true,
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -28,10 +29,13 @@ func UrlTest(instance *V2RayInstance, inbound string, link string, timeout int32
 	httpClient := &http.Client{
 		Transport: transport,
 		Timeout:   time.Duration(timeout) * time.Millisecond,
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Millisecond)
 	defer cancel()
-	req, err := http.NewRequest("GET", link, nil)
+	req, err := http.NewRequest("HEAD", link, nil)
 	if err != nil {
 		return 0, err
 	}

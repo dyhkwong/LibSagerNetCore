@@ -67,6 +67,7 @@ func NewHttpClient() HTTPClient {
 	client.client.Transport = &client.transport
 	client.transport.TLSClientConfig = &client.tls
 	client.transport.DisableKeepAlives = true
+	client.transport.ForceAttemptHTTP2 = true
 	return client
 }
 
@@ -125,7 +126,6 @@ func (c *httpClient) UseSocks5(port int32) {
 }
 
 func (c *httpClient) KeepAlive() {
-	c.transport.ForceAttemptHTTP2 = true
 	c.transport.DisableKeepAlives = false
 }
 
