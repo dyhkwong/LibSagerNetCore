@@ -72,13 +72,8 @@ type TunConfig struct {
 	DumpUID             bool
 	TrafficStats        bool
 	PCap                bool
-	ErrorHandler        ErrorHandler
 	LocalResolver       LocalResolver
 	ProtectPath         string
-}
-
-type ErrorHandler interface {
-	HandleError(err string)
 }
 
 func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
@@ -117,7 +112,7 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 
 		t.dev, err = gvisor.New(config.FileDescriptor, config.MTU, t, gvisor.DefaultNIC, config.PCap, pcapFile, math.MaxUint32, config.IPv6Mode)
 	case comm.TunImplementationSystem:
-		t.dev, err = nat.New(config.FileDescriptor, config.MTU, t, config.IPv6Mode, config.ErrorHandler.HandleError)
+		t.dev, err = nat.New(config.FileDescriptor, config.MTU, t, config.IPv6Mode)
 	}
 
 	if err != nil {

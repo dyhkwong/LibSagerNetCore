@@ -11,9 +11,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features"
-	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/extension"
-	"github.com/v2fly/v2ray-core/v5/features/outbound"
 	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/features/stats"
 	"github.com/v2fly/v2ray-core/v5/infra/conf/serial"
@@ -25,14 +23,11 @@ func GetV2RayVersion() string {
 }
 
 type V2RayInstance struct {
-	started         bool
-	core            *core.Instance
-	dispatcher      routing.Dispatcher
-	router          routing.Router
-	outboundManager outbound.Manager
-	statsManager    stats.Manager
-	observatory     features.TaggedFeatures
-	dnsClient       dns.Client
+	started      bool
+	core         *core.Instance
+	dispatcher   routing.Dispatcher
+	statsManager stats.Manager
+	observatory  features.TaggedFeatures
 }
 
 func NewV2rayInstance() *V2RayInstance {
@@ -42,26 +37,18 @@ func NewV2rayInstance() *V2RayInstance {
 func (instance *V2RayInstance) LoadConfig(content string) error {
 	config, err := serial.LoadJSONConfig(strings.NewReader(content))
 	if err != nil {
-		if err == nil {
-			config, err = serial.LoadJSONConfig(strings.NewReader(content))
-		}
+		return err
 	}
+
+	instance.core, err = core.New(config)
 	if err != nil {
 		return err
 	}
 
-	c, err := core.New(config)
-	if err != nil {
-		return err
-	}
-	instance.core = c
-	instance.statsManager = c.GetFeature(stats.ManagerType()).(stats.Manager)
-	instance.router = c.GetFeature(routing.RouterType()).(routing.Router)
-	instance.outboundManager = c.GetFeature(outbound.ManagerType()).(outbound.Manager)
-	instance.dispatcher = c.GetFeature(routing.DispatcherType()).(routing.Dispatcher)
-	instance.dnsClient = c.GetFeature(dns.ClientType()).(dns.Client)
+	instance.statsManager = instance.core.GetFeature(stats.ManagerType()).(stats.Manager)
+	instance.dispatcher = instance.core.GetFeature(routing.DispatcherType()).(routing.Dispatcher)
 
-	o := c.GetFeature(extension.ObservatoryType())
+	o := instance.core.GetFeature(extension.ObservatoryType())
 	if o != nil {
 		instance.observatory = o.(features.TaggedFeatures)
 	}
@@ -75,8 +62,7 @@ func (instance *V2RayInstance) Start() error {
 	if instance.core == nil {
 		return errors.New("not initialized")
 	}
-	err := instance.core.Start()
-	if err != nil {
+	if err := instance.core.Start(); err != nil {
 		return err
 	}
 	instance.started = true
@@ -96,11 +82,12 @@ func (instance *V2RayInstance) QueryStats(tag string, direct string) int64 {
 
 func (instance *V2RayInstance) Close() error {
 	if instance.started {
-		err := instance.core.Close()
-		if err == nil {
-			*instance = V2RayInstance{}
-		}
-		return err
+		instance.core.Close()
+		instance.core = nil
+		instance.dispatcher = nil
+		instance.statsManager = nil
+		instance.observatory = nil
+		instance.started = false
 	}
 	return nil
 }

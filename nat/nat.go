@@ -30,16 +30,14 @@ type SystemTun struct {
 	handler      tun.Handler
 	ipv6Mode     int32
 	tcpForwarder *tcpForwarder
-	errorHandler func(err string)
 }
 
-func New(dev int32, mtu int32, handler tun.Handler, ipv6Mode int32, errorHandler func(err string)) (*SystemTun, error) {
+func New(dev int32, mtu int32, handler tun.Handler, ipv6Mode int32) (*SystemTun, error) {
 	t := &SystemTun{
-		dev:          int(dev),
-		mtu:          int(mtu),
-		handler:      handler,
-		ipv6Mode:     ipv6Mode,
-		errorHandler: errorHandler,
+		dev:      int(dev),
+		mtu:      int(mtu),
+		handler:  handler,
+		ipv6Mode: ipv6Mode,
 	}
 	tcpServer, err := newTcpForwarder(t)
 	if err != nil {
