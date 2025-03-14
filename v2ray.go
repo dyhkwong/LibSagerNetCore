@@ -8,11 +8,10 @@ import (
 	"strings"
 	_ "unsafe"
 
-	"github.com/v2fly/v2ray-core/v5"
+	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features"
 	"github.com/v2fly/v2ray-core/v5/features/extension"
-	"github.com/v2fly/v2ray-core/v5/features/routing"
 	"github.com/v2fly/v2ray-core/v5/features/stats"
 	"github.com/v2fly/v2ray-core/v5/infra/conf/serial"
 	_ "github.com/v2fly/v2ray-core/v5/main/distro/all"
@@ -25,7 +24,6 @@ func GetV2RayVersion() string {
 type V2RayInstance struct {
 	started      bool
 	core         *core.Instance
-	dispatcher   routing.Dispatcher
 	statsManager stats.Manager
 	observatory  features.TaggedFeatures
 }
@@ -39,15 +37,11 @@ func (instance *V2RayInstance) LoadConfig(content string) error {
 	if err != nil {
 		return err
 	}
-
 	instance.core, err = core.New(config)
 	if err != nil {
 		return err
 	}
-
 	instance.statsManager = instance.core.GetFeature(stats.ManagerType()).(stats.Manager)
-	instance.dispatcher = instance.core.GetFeature(routing.DispatcherType()).(routing.Dispatcher)
-
 	o := instance.core.GetFeature(extension.ObservatoryType())
 	if o != nil {
 		instance.observatory = o.(features.TaggedFeatures)
@@ -84,7 +78,6 @@ func (instance *V2RayInstance) Close() error {
 	if instance.started {
 		instance.core.Close()
 		instance.core = nil
-		instance.dispatcher = nil
 		instance.statsManager = nil
 		instance.observatory = nil
 		instance.started = false

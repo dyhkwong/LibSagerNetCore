@@ -304,7 +304,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 				atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
 			}
 		}()
-		conn = statsConn{conn, &stats.uplink, &stats.downlink}
+		conn = &statsConn{conn, &stats.uplink, &stats.downlink}
 	}
 	t.connectionsLock.Lock()
 	element := t.connections.PushBack(conn)
@@ -312,21 +312,21 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 
 	inbound.Conn = conn
 
-	link, err := t.v2ray.dispatcher.Dispatch(ctx, destination)
+	proxyConn, err := t.v2ray.dial(ctx, destination)
 	if err != nil {
-		newError("[TCP] dispatch failed: ", err).WriteToLog()
+		newError("[TCP] dial failed: ", err).WriteToLog()
 		return
-	} else {
-		_ = task.Run(ctx, func() error {
-			_ = buf.Copy(buf.NewReader(conn), link.Writer)
-			return io.EOF
-		}, func() error {
-			_ = buf.Copy(link.Reader, buf.NewWriter(conn))
-			return io.EOF
-		})
 	}
+	defer comm.CloseIgnore(proxyConn)
+	_ = task.Run(ctx, func() error {
+		_ = buf.Copy(buf.NewReader(conn), buf.NewWriter(proxyConn))
+		return io.EOF
+	}, func() error {
+		_ = buf.Copy(buf.NewReader(proxyConn), buf.NewWriter(conn))
+		return io.EOF
+	})
 
-	comm.CloseIgnore(conn, link.Reader, link.Writer)
+	comm.CloseIgnore(conn)
 
 	t.connectionsLock.Lock()
 	t.connections.Remove(element)
@@ -485,7 +485,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 				atomic.StoreInt64(&stats.deactivateAt, time.Now().Unix())
 			}
 		}()
-		conn = statsPacketConn{conn, &stats.uplink, &stats.downlink}
+		conn = &statsPacketConn{conn, &stats.uplink, &stats.downlink}
 	}
 
 	t.connectionsLock.Lock()

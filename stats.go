@@ -107,7 +107,7 @@ type statsConn struct {
 	downlink *uint64
 }
 
-func (c statsConn) Read(b []byte) (n int, err error) {
+func (c *statsConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
 	if err == nil {
 		atomic.AddUint64(c.uplink, uint64(n))
@@ -115,7 +115,7 @@ func (c statsConn) Read(b []byte) (n int, err error) {
 	return
 }
 
-func (c statsConn) Write(b []byte) (n int, err error) {
+func (c *statsConn) Write(b []byte) (n int, err error) {
 	n, err = c.Conn.Write(b)
 	if err == nil {
 		atomic.AddUint64(c.downlink, uint64(n))
@@ -129,7 +129,7 @@ type statsPacketConn struct {
 	downlink *uint64
 }
 
-func (c statsPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
+func (c *statsPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 	n, addr, err = c.PacketConn.ReadFrom(p)
 	if err == nil {
 		atomic.AddUint64(c.downlink, uint64(n))
@@ -137,7 +137,7 @@ func (c statsPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 	return
 }
 
-func (c statsPacketConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
+func (c *statsPacketConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
 	n, err = c.PacketConn.WriteTo(p, addr)
 	if err == nil {
 		atomic.AddUint64(c.uplink, uint64(n))
