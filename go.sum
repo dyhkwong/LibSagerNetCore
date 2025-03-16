@@ -56,8 +56,8 @@ github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZm
 github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 h1:BS21ZUJ/B5X2UVUbczfmdWH7GapPWAhxcMsDnjJTU1E=
 github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165/go.mod h1:c9O8+fpSOX1DM8cPNSkX/qsBWdkD4yd2dpciOWQjpBw=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
-github.com/dyhkwong/v2ray-core/v5 v5.29.3-0.20250308085525-3ec191619250 h1:ps/ECLAWl942s00LlgXGLr5IqAfWm0e2cPMIymOFlTw=
-github.com/dyhkwong/v2ray-core/v5 v5.29.3-0.20250308085525-3ec191619250/go.mod h1:wk2jy+5XPGDBdAP3rZwfiJVq+mlWEPZ4FIZ40bXcrzM=
+github.com/dyhkwong/v2ray-core/v5 v5.29.3-0.20250316145915-a2f2992de8f1 h1:MuNRj84QhyiOuJc5rrQddSITpRCHOOFSyedcQXQVSm4=
+github.com/dyhkwong/v2ray-core/v5 v5.29.3-0.20250316145915-a2f2992de8f1/go.mod h1:GM9M3FKe9ahrgdQB4P9I0nMZ6Euv5cAQMTNKkKqxSEM=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4IgpuI1SZQ=
@@ -248,8 +248,8 @@ github.com/sagernet/gomobile v0.1.4 h1:WzX9ka+iHdupMgy2Vdich+OAt7TM8C2cZbIbzNjBr
 github.com/sagernet/gomobile v0.1.4/go.mod h1:Pqq2+ZVvs10U7xK+UwJgwYWUykewi8H6vlslAO73n9E=
 github.com/sagernet/quic-go v0.49.0-beta.1 h1:3LdoCzVVfYRibZns1tYWSIoB65fpTmrwy+yfK8DQ8Jk=
 github.com/sagernet/quic-go v0.49.0-beta.1/go.mod h1:uesWD1Ihrldq1M3XtjuEvIUqi8WHNsRs71b3Lt1+p/U=
-github.com/sagernet/sing v0.6.2 h1:TR9WeH0yDJMjSFThqgFYe/i2pdH69Gb0tDJzJLPuVec=
-github.com/sagernet/sing v0.6.2/go.mod h1:ARkL0gM13/Iv5VCZmci/NuoOlePoIsW0m7BWfln/Hak=
+github.com/sagernet/sing v0.6.3 h1:J1spMc6LMlqUvRjWjvNMAcbvACDneqxB9zxfLuS0UTE=
+github.com/sagernet/sing v0.6.3/go.mod h1:ARkL0gM13/Iv5VCZmci/NuoOlePoIsW0m7BWfln/Hak=
 github.com/sagernet/sing-quic v0.4.0 h1:E4geazHk/UrJTXMlT+CBCKmn8V86RhtNeczWtfeoEFc=
 github.com/sagernet/sing-quic v0.4.0/go.mod h1:c+CytOEyeN20KCTFIP8YQUkNDVFLSzjrEPqP7Hlnxys=
 github.com/sagernet/sing-shadowsocks v0.2.7 h1:zaopR1tbHEw5Nk6FAkM05wCslV6ahVegEZaKMv9ipx8=
