@@ -244,8 +244,8 @@ github.com/rogpeppe/go-internal v1.12.0 h1:exVL4IDcn6na9z1rAb56Vxr+CgyK3nn3O+epU
 github.com/rogpeppe/go-internal v1.12.0/go.mod h1:E+RYuTGaKKdloAfM02xzb0FW3Paa99yedzYV+kq4uf4=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f/go.mod h1:sm1tb6uqfes/u+d4ooFouqFdy9/2g9QGwK3SQygK0Ts=
-github.com/sagernet/gomobile v0.1.4 h1:WzX9ka+iHdupMgy2Vdich+OAt7TM8C2cZbIbzNjBrJY=
-github.com/sagernet/gomobile v0.1.4/go.mod h1:Pqq2+ZVvs10U7xK+UwJgwYWUykewi8H6vlslAO73n9E=
+github.com/sagernet/gomobile v0.1.5 h1:vA5ijehpv+2UdZqXmDMYrVMFY3zzdjwoSrNy8/zOEtc=
+github.com/sagernet/gomobile v0.1.5/go.mod h1:Pqq2+ZVvs10U7xK+UwJgwYWUykewi8H6vlslAO73n9E=
 github.com/sagernet/quic-go v0.49.0-beta.1 h1:3LdoCzVVfYRibZns1tYWSIoB65fpTmrwy+yfK8DQ8Jk=
 github.com/sagernet/quic-go v0.49.0-beta.1/go.mod h1:uesWD1Ihrldq1M3XtjuEvIUqi8WHNsRs71b3Lt1+p/U=
 github.com/sagernet/sing v0.6.3 h1:J1spMc6LMlqUvRjWjvNMAcbvACDneqxB9zxfLuS0UTE=
