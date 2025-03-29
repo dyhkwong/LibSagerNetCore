@@ -9,7 +9,6 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/checksum"
 	"gvisor.dev/gvisor/pkg/tcpip/header"
-	"libcore/clash/common/cache"
 	"libcore/comm"
 )
 
@@ -19,13 +18,13 @@ type tcpForwarder struct {
 	port6     uint16
 	listener4 *net.TCPListener
 	listener6 *net.TCPListener
-	sessions  *cache.LruCache
+	sessions  *comm.LruCache
 }
 
 func newTcpForwarder(tun *SystemTun) (*tcpForwarder, error) {
 	tcpForwarder := &tcpForwarder{
 		tun:      tun,
-		sessions: cache.New(cache.WithAge(300), cache.WithUpdateAgeOnGet()),
+		sessions: comm.NewLruCache(300, true),
 	}
 	if tun.ipv6Mode != comm.IPv6Only {
 		address := &net.TCPAddr{}

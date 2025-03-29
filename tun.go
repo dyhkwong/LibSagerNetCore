@@ -17,13 +17,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
+	"github.com/v2fly/v2ray-core/v5/common/bytespool"
 	v2rayNet "github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/task"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
-	"libcore/clash/common/pool"
 	"libcore/comm"
 	"libcore/gvisor"
 	"libcore/nat"
@@ -34,6 +34,7 @@ var _ tun.Handler = (*Tun2ray)(nil)
 
 type Tun2ray struct {
 	dev                 tun.Tun
+	mtu                 int32
 	router              string
 	v2ray               *V2RayInstance
 	fakedns             bool
@@ -83,6 +84,7 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 		logrus.SetLevel(logrus.WarnLevel)
 	}
 	t := &Tun2ray{
+		mtu:                 config.MTU,
 		router:              config.Gateway4,
 		v2ray:               config.V2Ray,
 		sniffing:            config.Sniffing,
@@ -499,7 +501,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 	t.lockTable.Delete(natKey)
 	cond.Broadcast()
 
-	buffer := pool.Get(pool.RelayBufferSize)
+	buffer := bytespool.Alloc(t.mtu)
 	for {
 		n, addr, err := conn.ReadFrom(buffer)
 		if err != nil {
@@ -517,8 +519,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 			break
 		}
 	}
-	// close
-	_ = pool.Put(buffer)
+	bytespool.Free(buffer)
 	comm.CloseIgnore(conn, closer)
 	t.udpTable.Delete(natKey)
 
