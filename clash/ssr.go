@@ -1,4 +1,4 @@
-package libcore
+package clash
 
 import (
 	"bytes"
@@ -53,7 +53,7 @@ func (p *shadowsocksrPlugin) InitProtocolPlugin(remoteHost string, remotePort st
 	fs.StringVar(&p.protocol, "protocol", "origin", "")
 	fs.StringVar(&p.protocolParam, "protocol-param", "", "")
 	if err := fs.Parse(pluginArgs); err != nil {
-		return newError("shadowsocksr: failed to parse args").Base(err)
+		return err
 	}
 	p.host = remoteHost
 	p.port, _ = strconv.Atoi(remotePort)
@@ -66,7 +66,7 @@ func (p *shadowsocksrPlugin) InitProtocolPlugin(remoteHost string, remotePort st
 		Param:  p.obfsParam,
 	})
 	if err != nil {
-		return newError("failed to create ssr obfs").Base(err)
+		return err
 	}
 
 	protocol, err := protocol.PickProtocol(p.protocol, &protocol.Base{
@@ -75,7 +75,7 @@ func (p *shadowsocksrPlugin) InitProtocolPlugin(remoteHost string, remotePort st
 		Param:    p.protocolParam,
 	})
 	if err != nil {
-		return newError("failed to create ssr protocol").Base(err)
+		return err
 	}
 
 	p.o = obfs

@@ -1,6 +1,8 @@
-package libcore
+package clash
 
 import (
+	"errors"
+
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
 	"github.com/v2fly/v2ray-core/v5/proxy/sip003/self"
@@ -32,7 +34,7 @@ func (p *obfsLocalPlugin) Init(_, _, _, _, _ string, _ []string) error {
 func (p *obfsLocalPlugin) InitStreamPlugin(remotePort string, pluginOpts string) error {
 	options, err := self.ParsePluginOptions(pluginOpts)
 	if err != nil {
-		return newError("obfs-local: failed to parse plugin options").Base(err)
+		return err
 	}
 
 	mode := "http"
@@ -50,7 +52,7 @@ func (p *obfsLocalPlugin) InitStreamPlugin(remotePort string, pluginOpts string)
 	case "tls":
 		p.tls = true
 	default:
-		return newError("unknown obfs mode ", mode)
+		return errors.New("unknown obfs mode: " + mode)
 	}
 
 	p.port = remotePort
