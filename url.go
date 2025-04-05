@@ -4,7 +4,6 @@ import (
 	"net"
 	"net/url"
 	"strconv"
-	"strings"
 	_ "unsafe"
 )
 
@@ -25,10 +24,15 @@ type URL interface {
 	SetPath(path string)
 	GetRawPath() string
 	SetRawPath(rawPath string) error
-	QueryParameterNotBlank(key string) string
+	GetRawQuery() string
+	SetRawQuery(rawPath string)
+	HasQueryParameter(key string) bool
+	GetQueryParameter(key string) string
 	AddQueryParameter(key, value string)
 	DeleteQueryParameter(key string)
 	GetFragment() string
+	SetFragment(fragment string)
+	GetRawFragment() string
 	SetRawFragment(rawFragment string) error
 	GetString() string
 }
@@ -36,15 +40,15 @@ type URL interface {
 var _ URL = (*netURL)(nil)
 
 type netURL struct {
-	url.URL
-	url.Values
+	*url.URL
 }
 
 func NewURL(scheme string) URL {
-	u := new(netURL)
-	u.Scheme = scheme
-	u.Values = make(url.Values)
-	return u
+	return &netURL{
+		URL: &url.URL{
+			Scheme: scheme,
+		},
+	}
 }
 
 //go:linkname setFragment net/url.(*URL).setFragment
@@ -54,24 +58,11 @@ func setFragment(u *url.URL, fragment string) error
 func setPath(u *url.URL, fragment string) error
 
 func ParseURL(rawURL string) (URL, error) {
-	u := &netURL{}
-	ru, frag, _ := strings.Cut(rawURL, "#")
-	uu, err := url.Parse(ru)
+	url, err := url.Parse(rawURL)
 	if err != nil {
-		return nil, newError("failed to parse url: ", rawURL).Base(err)
-	}
-	u.URL = *uu
-	u.Values = u.Query()
-	if u.Values == nil {
-		u.Values = make(url.Values)
-	}
-	if frag == "" {
-		return u, nil
-	}
-	if err = u.SetRawFragment(frag); err != nil {
 		return nil, err
 	}
-	return u, nil
+	return &netURL{URL: url}, nil
 }
 
 func (u *netURL) GetScheme() string {
@@ -167,23 +158,47 @@ func (u *netURL) SetPath(path string) {
 }
 
 func (u *netURL) GetRawPath() string {
-	return u.RawPath
+	if len(u.RawPath) > 0 {
+		return u.RawPath
+	}
+	return u.Path
 }
 
 func (u *netURL) SetRawPath(rawPath string) error {
-	return setPath(&u.URL, rawPath)
+	return setPath(u.URL, rawPath)
 }
 
-func (u *netURL) QueryParameterNotBlank(key string) string {
-	return u.Get(key)
+func (u *netURL) GetRawQuery() string {
+	return u.RawQuery
+}
+
+func (u *netURL) SetRawQuery(rawQuery string) {
+	u.RawQuery = rawQuery
+}
+
+func (u *netURL) HasQueryParameter(key string) bool {
+	return u.Query().Has(key)
+}
+
+func (u *netURL) GetQueryParameter(key string) string {
+	return u.Query().Get(key)
 }
 
 func (u *netURL) AddQueryParameter(key, value string) {
-	u.Add(key, value)
+	queries := u.Query()
+	queries.Add(key, value)
+	u.RawQuery = queries.Encode()
 }
 
 func (u *netURL) DeleteQueryParameter(key string) {
-	u.Del(key)
+	queries := u.Query()
+	queries.Del(key)
+	u.RawQuery = queries.Encode()
+}
+
+func (u *netURL) SetFragment(fragment string) {
+	u.Fragment = fragment
+	u.RawFragment = ""
 }
 
 func (u *netURL) GetFragment() string {
@@ -191,10 +206,16 @@ func (u *netURL) GetFragment() string {
 }
 
 func (u *netURL) SetRawFragment(rawFragment string) error {
-	return setFragment(&u.URL, rawFragment)
+	return setFragment(u.URL, rawFragment)
+}
+
+func (u *netURL) GetRawFragment() string {
+	if len(u.RawFragment) > 0 {
+		return u.RawFragment
+	}
+	return u.Fragment
 }
 
 func (u *netURL) GetString() string {
-	u.RawQuery = u.Encode()
 	return u.String()
 }
