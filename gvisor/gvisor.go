@@ -136,7 +136,7 @@ func (w *pcapFileWrapper) Write(p []byte) (n int, err error) {
 	if err != nil {
 		logrus.Debug("write pcap file failed: ", err)
 	}
-	return n, nil
+	return n, err
 }
 
 func gMust(err tcpip.Error) {
