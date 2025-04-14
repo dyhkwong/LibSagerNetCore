@@ -224,6 +224,13 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 
 	isDns := destination.Address.String() == t.router
 	if isDns {
+		if destination.Port != 53 {
+			go func() {
+				time.Sleep(5 * time.Minute)
+				conn.Close()
+			}()
+			return
+		}
 		inbound.Tag = "dns-in"
 	}
 
@@ -381,6 +388,9 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 	}
 	isDns := destination.Address.String() == t.router
 	if isDns {
+		if destination.Port != 53 {
+			return
+		}
 		inbound.Tag = "dns-in"
 	}
 
