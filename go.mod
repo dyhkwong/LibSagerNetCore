@@ -91,4 +91,4 @@ require (
 
 //replace github.com/v2fly/v2ray-core/v5 => ../../../v2ray-core
 
-replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.30.1-0.20250417093648-141716f8b292
+replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.30.1-0.20250422142503-9eedcebe4942
