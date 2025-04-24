@@ -41,11 +41,12 @@ func gUdpHandler(s *stack.Stack, handler tun.Handler) {
 
 		data := buffer.Data().AsRange().ToView().AsSlice()
 		packet := &gUdpPacket{
-			s:        s,
-			id:       &id,
-			nicID:    buffer.NICID,
-			netHdr:   buffer.Network(),
-			netProto: buffer.NetworkProtocolNumber,
+			s:                   s,
+			id:                  &id,
+			nicID:               buffer.NICID,
+			sourceAddress:       buffer.Network().SourceAddress(),
+			destinationAdddress: buffer.Network().DestinationAddress(),
+			netProto:            buffer.NetworkProtocolNumber,
 		}
 		destUdpAddr := &net.UDPAddr{
 			IP:   dst.Address.IP(),
@@ -62,11 +63,12 @@ func gUdpHandler(s *stack.Stack, handler tun.Handler) {
 }
 
 type gUdpPacket struct {
-	s        *stack.Stack
-	id       *stack.TransportEndpointID
-	nicID    tcpip.NICID
-	netHdr   header.Network
-	netProto tcpip.NetworkProtocolNumber
+	s                   *stack.Stack
+	id                  *stack.TransportEndpointID
+	nicID               tcpip.NICID
+	sourceAddress       tcpip.Address
+	destinationAdddress tcpip.Address
+	netProto            tcpip.NetworkProtocolNumber
 }
 
 func (p *gUdpPacket) WriteBack(b []byte, addr *net.UDPAddr) (int, error) {
@@ -82,14 +84,14 @@ func (p *gUdpPacket) WriteBack(b []byte, addr *net.UDPAddr) (int, error) {
 	)
 
 	if addr == nil {
-		localAddress = p.netHdr.DestinationAddress()
+		localAddress = p.destinationAdddress
 		localPort = p.id.LocalPort
 	} else {
 		localAddress = tcpip.AddrFromSlice(addr.IP)
 		localPort = uint16(addr.Port)
 	}
 
-	route, err := p.s.FindRoute(p.nicID, localAddress, p.netHdr.SourceAddress(), p.netProto, false /* multicastLoop */)
+	route, err := p.s.FindRoute(p.nicID, localAddress, p.sourceAddress, p.netProto, false /* multicastLoop */)
 	if err != nil {
 		return 0, fmt.Errorf("%#v find route: %s", p.id, err)
 	}
