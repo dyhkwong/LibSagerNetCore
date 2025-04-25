@@ -16,10 +16,6 @@ func Unsetenv(key string) error {
 	return os.Unsetenv(key)
 }
 
-func IcmpPing(address string, timeout int32) (int32, error) {
-	return icmpPing(address, timeout)
-}
-
 type StunResult struct {
 	NatMapping   string
 	NatFiltering string
