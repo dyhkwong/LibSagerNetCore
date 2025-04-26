@@ -38,7 +38,7 @@ type shadowsocksrPlugin struct {
 	p protocol.Protocol
 }
 
-func (p *shadowsocksrPlugin) Init(_, _, _, _, _ string, _ []string) error {
+func (p *shadowsocksrPlugin) Init(_, _, _, _, _ string, _ []string, _ string) error {
 	panic("Please call InitProtocolPlugin.")
 }
 

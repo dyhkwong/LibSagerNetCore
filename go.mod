@@ -1,6 +1,6 @@
 module libcore
 
-go 1.24.0
+go 1.24
 
 require (
 	github.com/ccding/go-stun v0.1.5
@@ -11,7 +11,7 @@ require (
 	github.com/v2fly/v2ray-core/v5 v5.30.0
 	github.com/wzshiming/socks5 v0.5.2
 	golang.org/x/sys v0.32.0
-	gvisor.dev/gvisor v0.0.0-20250411210754-2be36b44316d
+	gvisor.dev/gvisor v0.0.0-20250421082855-175fc78fa9bb
 )
 
 require (
@@ -51,10 +51,10 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/qtls-go1-20 v0.4.1 // indirect
-	github.com/refraction-networking/utls v1.7.0 // indirect
+	github.com/refraction-networking/utls v1.7.1 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/sagernet/quic-go v0.49.0-beta.1 // indirect
-	github.com/sagernet/sing v0.6.6 // indirect
+	github.com/sagernet/sing v0.6.7 // indirect
 	github.com/sagernet/sing-quic v0.4.1 // indirect
 	github.com/sagernet/sing-shadowsocks v0.2.7 // indirect
 	github.com/sagernet/sing-shadowsocks2 v0.2.0 // indirect
@@ -91,4 +91,4 @@ require (
 
 //replace github.com/v2fly/v2ray-core/v5 => ../../../v2ray-core
 
-replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.30.1-0.20250423173122-e67950e88e9e
+replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.30.1-0.20250426142529-4803b0081f29

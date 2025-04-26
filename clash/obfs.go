@@ -27,7 +27,7 @@ type obfsLocalPlugin struct {
 	port string
 }
 
-func (p *obfsLocalPlugin) Init(_, _, _, _, _ string, _ []string) error {
+func (p *obfsLocalPlugin) Init(_, _, _, _, _ string, _ []string, _ string) error {
 	panic("Please call InitStreamPlugin.")
 }
 
