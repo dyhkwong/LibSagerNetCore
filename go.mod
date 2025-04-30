@@ -8,7 +8,7 @@ require (
 	github.com/quic-go/quic-go v0.51.0
 	github.com/sagernet/gomobile v0.1.6
 	github.com/sirupsen/logrus v1.9.3
-	github.com/v2fly/v2ray-core/v5 v5.30.0
+	github.com/v2fly/v2ray-core/v5 v5.31.0
 	github.com/wzshiming/socks5 v0.5.2
 	golang.org/x/net v0.39.0
 	golang.org/x/sys v0.32.0
@@ -71,7 +71,7 @@ require (
 	github.com/xiaokangwang/VLite v0.0.0-20231225174116-75fa4b06e9f2 // indirect
 	github.com/xtaci/smux v1.5.15 // indirect
 	github.com/xtls/reality v0.0.0-20240909153216-e26ae2305463 // indirect
-	go.uber.org/mock v0.5.1 // indirect
+	go.uber.org/mock v0.5.2 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/crypto v0.37.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
@@ -91,4 +91,4 @@ require (
 
 //replace github.com/v2fly/v2ray-core/v5 => ../../../v2ray-core
 
-replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.30.1-0.20250426142529-4803b0081f29
+replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.30.1-0.20250501070639-1d5a1cde4a61

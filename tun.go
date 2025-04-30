@@ -42,7 +42,7 @@ type Tun2ray struct {
 	overrideDestination bool
 	debug               bool
 
-	dumpUid      bool
+	dumpUID      bool
 	trafficStats bool
 	pcap         bool
 
@@ -91,7 +91,7 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 		overrideDestination: config.OverrideDestination,
 		fakedns:             config.FakeDNS,
 		debug:               config.Debug,
-		dumpUid:             config.DumpUID,
+		dumpUID:             config.DumpUID,
 		trafficStats:        config.TrafficStats,
 	}
 
@@ -219,7 +219,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		Source:      source,
 		Tag:         "tun",
 		NetworkType: networkType,
-		WifiSSID:    wifiSSID,
+		SSID:        ssid,
 	}
 
 	isDns := destination.Address.String() == t.router
@@ -230,15 +230,15 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 	var uid uint16
 	var self bool
 
-	if t.dumpUid || t.trafficStats {
-		u, err := dumpUid(source, destination)
+	if t.dumpUID || t.trafficStats {
+		u, err := dumpUID(source, destination)
 		if err == nil {
 			uid = uint16(u)
-			var info *UidInfo
+			var info *UIDInfo
 			self = uid > 0 && int(uid) == os.Getuid()
 			if t.debug && !self && uid >= 10000 {
 				if err == nil {
-					info, _ = uidDumper.GetUidInfo(int32(uid))
+					info, _ = uidDumper.GetUIDInfo(int32(uid))
 				}
 				if info == nil {
 					logrus.Infof("[TCP] %s ==> %s", source.NetAddr(), destination.NetAddr())
@@ -251,7 +251,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 				uid = 1000
 			}
 
-			inbound.Uid = uint32(uid)
+			inbound.UID = uint32(uid)
 		}
 	}
 
@@ -377,7 +377,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		Source:      source,
 		Tag:         "tun",
 		NetworkType: networkType,
-		WifiSSID:    wifiSSID,
+		SSID:        ssid,
 	}
 	isDns := destination.Address.String() == t.router
 	if isDns {
@@ -387,8 +387,8 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 	var uid uint16
 	var self bool
 
-	if t.dumpUid || t.trafficStats {
-		u, err := dumpUid(source, destination)
+	if t.dumpUID || t.trafficStats {
+		u, err := dumpUID(source, destination)
 		if err == nil {
 			if u > 19999 {
 				logrus.Debug("bad connection owner ", u, ", reset to android.")
@@ -396,15 +396,15 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 			}
 
 			uid = uint16(u)
-			var info *UidInfo
+			var info *UIDInfo
 			self = uid > 0 && int(uid) == os.Getuid()
 
 			if t.debug && !self && uid >= 1000 {
 				if err == nil {
-					info, err = uidDumper.GetUidInfo(int32(uid))
+					info, err = uidDumper.GetUIDInfo(int32(uid))
 					if err != nil {
 						uid = 1000
-						info, err = uidDumper.GetUidInfo(int32(uid))
+						info, err = uidDumper.GetUIDInfo(int32(uid))
 					}
 				}
 				var tag string
@@ -425,7 +425,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 				uid = 1000
 			}
 
-			inbound.Uid = uint32(uid)
+			inbound.UID = uint32(uid)
 		}
 
 	}

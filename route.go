@@ -4,18 +4,18 @@ import "github.com/sirupsen/logrus"
 
 var networkType string
 
-func SetNetworkType(network string) {
-	if network != networkType {
-		logrus.Debug("updated network type: ", network)
-		networkType = network
+func SetNetworkType(newNetworkType string) {
+	if newNetworkType != networkType {
+		logrus.Debug("updated network type: ", newNetworkType)
+		networkType = newNetworkType
 	}
 }
 
-var wifiSSID string
+var ssid string
 
-func SetWifiSSID(ssid string) {
-	if ssid != wifiSSID {
-		logrus.Debug("updated wifi ssid: ", ssid)
-		wifiSSID = ssid
+func SetSSID(newSSID string) {
+	if newSSID != ssid {
+		logrus.Debug("updated SSID: ", newSSID)
+		ssid = newSSID
 	}
 }

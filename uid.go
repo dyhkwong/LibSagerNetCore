@@ -7,26 +7,26 @@ import (
 )
 
 var (
-	uidDumper UidDumper
+	uidDumper UIDDumper
 	useProcfs bool
 )
 
-type UidInfo struct {
+type UIDInfo struct {
 	PackageName string
 	Label       string
 }
 
-type UidDumper interface {
-	DumpUid(ipProto int32, srcIp string, srcPort int32, destIp string, destPort int32) (int32, error)
-	GetUidInfo(uid int32) (*UidInfo, error)
+type UIDDumper interface {
+	DumpUID(ipProto int32, srcIp string, srcPort int32, destIp string, destPort int32) (int32, error)
+	GetUIDInfo(uid int32) (*UIDInfo, error)
 }
 
-func SetUidDumper(dumper UidDumper, procfs bool) {
+func SetUIDDumper(dumper UIDDumper, procfs bool) {
 	uidDumper = dumper
 	useProcfs = procfs
 }
 
-func dumpUid(source net.Destination, destination net.Destination) (int32, error) {
+func dumpUID(source net.Destination, destination net.Destination) (int32, error) {
 	if useProcfs {
 		return querySocketUidFromProcFs(source, destination), nil
 	} else {
@@ -36,6 +36,6 @@ func dumpUid(source net.Destination, destination net.Destination) (int32, error)
 		} else {
 			ipProto = syscall.IPPROTO_UDP
 		}
-		return uidDumper.DumpUid(ipProto, source.Address.IP().String(), int32(source.Port), destination.Address.IP().String(), int32(destination.Port))
+		return uidDumper.DumpUID(ipProto, source.Address.IP().String(), int32(source.Port), destination.Address.IP().String(), int32(destination.Port))
 	}
 }
