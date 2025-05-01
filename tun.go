@@ -122,7 +122,7 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 	}
 
 	if !config.Protect {
-		config.Protector = noopProtectorInstance
+		config.Protector = &noopProtector{}
 	}
 
 	if len(config.ProtectPath) > 0 {
