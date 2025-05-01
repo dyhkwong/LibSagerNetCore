@@ -16,19 +16,15 @@ func Unsetenv(key string) error {
 	return os.Unsetenv(key)
 }
 
-func IcmpPing(address string, timeout int32) (int32, error) {
-	return icmpPing(address, timeout)
-}
-
 type StunResult struct {
 	NatMapping   string
 	NatFiltering string
 	Error        string
 }
 
-func StunTest(serverAddress string, useSOCKS5 bool, socksPort int32, dnsPort int32) *StunResult {
+func StunTest(serverAddress string, useSOCKS5 bool, socksPort int32) *StunResult {
 	result := new(StunResult)
-	natBehavior, err := stun.Test(serverAddress, useSOCKS5, int(socksPort), int(dnsPort))
+	natBehavior, err := stun.Test(serverAddress, useSOCKS5, int(socksPort))
 	if err != nil {
 		result.Error = err.Error()
 	}
@@ -45,9 +41,9 @@ type StunLegacyResult struct {
 	Error   string
 }
 
-func StunLegacyTest(serverAddress string, useSOCKS5 bool, socksPort int32, dnsPort int32) *StunLegacyResult {
+func StunLegacyTest(serverAddress string, useSOCKS5 bool, socksPort int32) *StunLegacyResult {
 	result := new(StunLegacyResult)
-	natType, host, err := stun.TestLegacy(serverAddress, useSOCKS5, int(socksPort), int(dnsPort))
+	natType, host, err := stun.TestLegacy(serverAddress, useSOCKS5, int(socksPort))
 	if err != nil {
 		result.Error = err.Error()
 	}
