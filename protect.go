@@ -2,23 +2,23 @@ package libcore
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net"
 	"os"
 
-	"github.com/sirupsen/logrus"
+	"github.com/v2fly/v2ray-core/v5/common/errors"
 	v2rayNet "github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"golang.org/x/sys/unix"
 )
 
+var (
+	_ internet.SystemDialer = (*protectedDialer)(nil)
+)
+
 type Protector interface {
 	Protect(fd int32) bool
 }
-
-var noopProtectorInstance = &noopProtector{}
 
 type noopProtector struct{}
 
@@ -31,14 +31,14 @@ type protectedDialer struct {
 	resolver  func(domain string) ([]net.IP, error)
 }
 
-func (dialer protectedDialer) Dial(ctx context.Context, source v2rayNet.Address, destination v2rayNet.Destination, sockopt *internet.SocketConfig) (conn net.Conn, err error) {
-	if destination.Network == v2rayNet.Network_Unknown || destination.Address == nil {
-		panic("connect to invalid destination")
+func (dialer protectedDialer) Dial(ctx context.Context, src v2rayNet.Address, dest v2rayNet.Destination, sockopt *internet.SocketConfig) (net.Conn, error) {
+	if dest.Network == v2rayNet.Network_Unknown || dest.Network == v2rayNet.Network_UNIX || dest.Address == nil {
+		return nil, newError("invalid destination")
 	}
-
 	var ips []net.IP
-	if destination.Address.Family().IsDomain() {
-		ips, err = dialer.resolver(destination.Address.Domain())
+	if dest.Address.Family().IsDomain() {
+		var err error
+		ips, err = dialer.resolver(dest.Address.Domain())
 		if err == nil && len(ips) == 0 {
 			err = dns.ErrEmptyResponse
 		}
@@ -46,114 +46,116 @@ func (dialer protectedDialer) Dial(ctx context.Context, source v2rayNet.Address,
 			return nil, err
 		}
 	} else {
-		ips = append(ips, destination.Address.IP())
+		ips = append(ips, dest.Address.IP())
 	}
-
-	for i, ip := range ips {
-		if i > 0 {
-			if err == nil {
-				break
-			} else {
-				logrus.Warn("dial system failed: ", err)
-			}
-			logrus.Debug("trying next address: ", ip.String())
+	errs := []error{}
+	for _, ip := range ips {
+		dest.Address = v2rayNet.IPAddress(ip)
+		if conn, err := dialer.dial(ctx, src, dest, sockopt); err == nil {
+			return conn, nil
+		} else {
+			errs = append(errs, err)
 		}
-		destination.Address = v2rayNet.IPAddress(ip)
-		conn, err = dialer.dial(ctx, source, destination, sockopt)
 	}
-
-	return conn, err
+	return nil, newError(errors.Combine(errs...))
 }
 
-func (dialer protectedDialer) dial(ctx context.Context, source v2rayNet.Address, destination v2rayNet.Destination, sockopt *internet.SocketConfig) (conn net.Conn, err error) {
-	destIp := destination.Address.IP()
-	fd, err := getFd(destination)
-	if err != nil {
-		return
+func (dialer protectedDialer) dial(ctx context.Context, src v2rayNet.Address, dest v2rayNet.Destination, sockopt *internet.SocketConfig) (net.Conn, error) {
+	var fd int
+	var err error
+	switch {
+	case dest.Network == v2rayNet.Network_UDP:
+		fd, err = unix.Socket(unix.AF_INET6, unix.SOCK_DGRAM, unix.IPPROTO_UDP)
+	case dest.Address.Family().IsIPv4():
+		fd, err = unix.Socket(unix.AF_INET, unix.SOCK_STREAM, unix.IPPROTO_TCP)
+	default:
+		fd, err = unix.Socket(unix.AF_INET6, unix.SOCK_STREAM, unix.IPPROTO_TCP)
 	}
-
+	if err != nil {
+		return nil, err
+	}
 	if !dialer.protector.Protect(int32(fd)) {
 		unix.Close(fd)
-		return nil, errors.New("protect failed")
+		return nil, newError("protect failed")
 	}
-
 	if sockopt != nil {
-		switch destination.Network {
+		var network string
+		switch dest.Network {
 		case v2rayNet.Network_TCP:
-			internet.ApplySockopt(destination.Network, destination.Address, uintptr(fd), sockopt)
+			switch dest.Address.Family() {
+			case v2rayNet.AddressFamilyIPv4:
+				network = "tcp4"
+			case v2rayNet.AddressFamilyIPv6:
+				network = "tcp6"
+			}
+			internet.ApplySockopt(network, dest.NetAddr(), uintptr(fd), sockopt)
 		case v2rayNet.Network_UDP:
-			internet.ApplySockopt(destination.Network, source, uintptr(fd), sockopt)
+			if src == nil || src == v2rayNet.AnyIP || src == v2rayNet.AnyIPv6 {
+				src = v2rayNet.AnyIPv6
+			}
+			switch src.Family() {
+			case v2rayNet.AddressFamilyIPv4:
+				network = "udp4"
+			case v2rayNet.AddressFamilyIPv6:
+				network = "udp6"
+			}
+			internet.ApplySockopt(network, net.JoinHostPort(src.IP().String(), "0"), uintptr(fd), sockopt)
 		}
 	}
-
-	switch destination.Network {
+	switch dest.Network {
 	case v2rayNet.Network_TCP:
 		var sockaddr unix.Sockaddr
-		if destination.Address.Family().IsIPv4() {
-			socketAddress := &unix.SockaddrInet4{
-				Port: int(destination.Port),
+		if dest.Address.Family().IsIPv4() {
+			sockaddrInet4 := &unix.SockaddrInet4{
+				Port: int(dest.Port),
 			}
-			copy(socketAddress.Addr[:], destIp)
-			sockaddr = socketAddress
+			copy(sockaddrInet4.Addr[:], dest.Address.IP())
+			sockaddr = sockaddrInet4
 		} else {
-			socketAddress := &unix.SockaddrInet6{
-				Port: int(destination.Port),
+			sockaddrInet6 := &unix.SockaddrInet6{
+				Port: int(dest.Port),
 			}
-			copy(socketAddress.Addr[:], destIp)
-			sockaddr = socketAddress
+			copy(sockaddrInet6.Addr[:], dest.Address.IP())
+			sockaddr = sockaddrInet6
 		}
-
 		err = unix.Connect(fd, sockaddr)
 	case v2rayNet.Network_UDP:
 		err = unix.Bind(fd, &unix.SockaddrInet6{})
 	}
 	if err != nil {
 		unix.Close(fd)
-		return
+		return nil, err
 	}
 
 	file := os.NewFile(uintptr(fd), "socket")
 	if file == nil {
-		return nil, errors.New("failed to connect to fd")
+		unix.Close(fd)
+		return nil, newError("failed to connect to fd")
 	}
 	defer file.Close()
 
-	switch destination.Network {
+	switch dest.Network {
 	case v2rayNet.Network_UDP:
-		pc, err := net.FilePacketConn(file)
-		if err == nil {
-			destAddr, err := net.ResolveUDPAddr("udp", destination.NetAddr())
-			if err != nil {
-				return nil, err
-			}
-			conn = &internet.PacketConnWrapper{
-				Conn: pc,
-				Dest: destAddr,
-			}
+		packetConn, err := net.FilePacketConn(file)
+		if err != nil {
+			unix.Close(fd)
+			return nil, err
 		}
+		destAddr, err := net.ResolveUDPAddr("udp", dest.NetAddr())
+		if err != nil {
+			unix.Close(fd)
+			return nil, err
+		}
+		return &internet.PacketConnWrapper{
+			Conn: packetConn,
+			Dest: destAddr,
+		}, nil
 	default:
-		conn, err = net.FileConn(file)
+		conn, err := net.FileConn(file)
+		if err != nil {
+			unix.Close(fd)
+			return nil, err
+		}
+		return conn, nil
 	}
-
-	return
-}
-
-func getFd(destination v2rayNet.Destination) (fd int, err error) {
-	var af int
-	if destination.Network == v2rayNet.Network_TCP && destination.Address.Family().IsIPv4() {
-		af = unix.AF_INET
-	} else {
-		af = unix.AF_INET6
-	}
-	switch destination.Network {
-	case v2rayNet.Network_TCP:
-		fd, err = unix.Socket(af, unix.SOCK_STREAM, unix.IPPROTO_TCP)
-	case v2rayNet.Network_UDP:
-		fd, err = unix.Socket(af, unix.SOCK_DGRAM, unix.IPPROTO_UDP)
-	case v2rayNet.Network_UNIX:
-		fd, err = unix.Socket(af, unix.SOCK_STREAM, 0)
-	default:
-		err = fmt.Errorf("unknow network")
-	}
-	return
 }
