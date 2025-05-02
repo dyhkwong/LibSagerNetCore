@@ -83,7 +83,7 @@ func ProbeCertQUIC(ctx context.Context, address, sni string, useSOCKS5 bool, soc
 		InsecureSkipVerify: true,
 		NextProtos:         []string{"h3"},
 		ServerName:         sni,
-	}, &quic.Config{Versions: []quic.Version{quic.Version2, quic.Version1}})
+	}, &quic.Config{Versions: []quic.Version{quic.Version1, quic.Version2}})
 	if err != nil {
 		return nil, err
 	}
