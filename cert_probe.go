@@ -16,7 +16,7 @@ import (
 	"github.com/wzshiming/socks5"
 )
 
-func ProbeCertTLS(ctx context.Context, address, sni string, useSOCKS5 bool, socksPort int) ([]*x509.Certificate, error) {
+func ProbeCertTLS(ctx context.Context, address, sni string, alpn []string, useSOCKS5 bool, socksPort int) ([]*x509.Certificate, error) {
 	var conn net.Conn
 	var err error
 	if useSOCKS5 {
@@ -32,7 +32,7 @@ func ProbeCertTLS(ctx context.Context, address, sni string, useSOCKS5 bool, sock
 	defer conn.Close()
 	tlsConn := tls.Client(conn, &tls.Config{
 		InsecureSkipVerify: true,
-		NextProtos:         []string{"h2", "http/1.1"},
+		NextProtos:         alpn,
 		ServerName:         sni,
 	})
 	err = tlsConn.HandshakeContext(ctx)
@@ -55,7 +55,7 @@ func (a *udpAddr) String() string {
 	return a.address
 }
 
-func ProbeCertQUIC(ctx context.Context, address, sni string, useSOCKS5 bool, socksPort int) ([]*x509.Certificate, error) {
+func ProbeCertQUIC(ctx context.Context, address, sni string, alpn []string, useSOCKS5 bool, socksPort int) ([]*x509.Certificate, error) {
 	var packetConn net.PacketConn
 	var addr net.Addr
 	var err error
@@ -81,7 +81,7 @@ func ProbeCertQUIC(ctx context.Context, address, sni string, useSOCKS5 bool, soc
 	}
 	quicConn, err := quic.Dial(ctx, packetConn, addr, &tls.Config{
 		InsecureSkipVerify: true,
-		NextProtos:         []string{"h3"},
+		NextProtos:         alpn,
 		ServerName:         sni,
 	}, &quic.Config{Versions: []quic.Version{quic.Version1, quic.Version2}})
 	if err != nil {
@@ -91,16 +91,20 @@ func ProbeCertQUIC(ctx context.Context, address, sni string, useSOCKS5 bool, soc
 	return quicConn.ConnectionState().TLS.PeerCertificates, nil
 }
 
-func ProbeCert(address, sni, protocol string, useSOCKS5 bool, socksPort int32) (cert string, err error) {
+func ProbeCert(address, sni, alpn, protocol string, useSOCKS5 bool, socksPort int32) (cert string, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	var certs []*x509.Certificate
+	var nextProto []string
+	if len(alpn) > 0 {
+		nextProto = strings.Split(alpn, ",")
+	}
 	switch protocol {
 	case "tls":
-		certs, err = ProbeCertTLS(ctx, address, sni, useSOCKS5, int(socksPort))
+		certs, err = ProbeCertTLS(ctx, address, sni, nextProto, useSOCKS5, int(socksPort))
 	case "quic":
-		certs, err = ProbeCertQUIC(ctx, address, sni, useSOCKS5, int(socksPort))
+		certs, err = ProbeCertQUIC(ctx, address, sni, nextProto, useSOCKS5, int(socksPort))
 	default:
 		err = newError("unknown protocol: ", protocol)
 	}
