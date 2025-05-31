@@ -5,12 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	_ "unsafe"
 
 	core "github.com/v2fly/v2ray-core/v5"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/features"
+	"github.com/v2fly/v2ray-core/v5/features/dns"
+	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/features/extension"
 	"github.com/v2fly/v2ray-core/v5/features/stats"
 	"github.com/v2fly/v2ray-core/v5/infra/conf/serial"
@@ -21,15 +24,22 @@ func GetV2RayVersion() string {
 	return core.Version()
 }
 
-type V2RayInstance struct {
-	started      bool
-	core         *core.Instance
-	statsManager stats.Manager
-	observatory  features.TaggedFeatures
+type V2RayInstanceConfig struct {
+	LocalResolver LocalResolver
 }
 
-func NewV2rayInstance() *V2RayInstance {
-	return &V2RayInstance{}
+type V2RayInstance struct {
+	started       bool
+	core          *core.Instance
+	statsManager  stats.Manager
+	observatory   features.TaggedFeatures
+	LocalResolver LocalResolver
+}
+
+func NewV2rayInstance(config *V2RayInstanceConfig) *V2RayInstance {
+	return &V2RayInstance{
+		LocalResolver: config.LocalResolver,
+	}
 }
 
 func (instance *V2RayInstance) LoadConfig(content string) error {
@@ -56,6 +66,44 @@ func (instance *V2RayInstance) Start() error {
 	if instance.core == nil {
 		return errors.New("not initialized")
 	}
+
+	if instance.LocalResolver != nil {
+		localdns.SetLookupFunc(func(network, host string) ([]net.IP, error) {
+			response, err := instance.LocalResolver.LookupIP(network, host)
+			if err != nil {
+				errStr := err.Error()
+				if strings.HasPrefix(errStr, "rcode") {
+					r, _ := strconv.Atoi(strings.Split(errStr, " ")[1])
+					return nil, dns.RCodeError(r)
+				}
+				return nil, err
+			}
+			if response == "" {
+				return nil, dns.ErrEmptyResponse
+			}
+			addrs := Filter(strings.Split(response, ","), func(it string) bool {
+				return len(strings.TrimSpace(it)) >= 0
+			})
+			ips := make([]net.IP, len(addrs))
+			for i, addr := range addrs {
+				ip := net.ParseIP(addr)
+				if ip.To4() != nil {
+					ip = ip.To4()
+				}
+				ips[i] = ip
+			}
+			if len(ips) == 0 {
+				return nil, dns.ErrEmptyResponse
+			}
+			return ips, nil
+		})
+		if instance.LocalResolver.SupportExchange() {
+			localdns.SetRawQueryFunc(func(b []byte) ([]byte, error) {
+				return instance.LocalResolver.Exchange(b)
+			})
+		}
+	}
+
 	if err := instance.core.Start(); err != nil {
 		return err
 	}
@@ -77,6 +125,10 @@ func (instance *V2RayInstance) QueryStats(tag string, direct string) int64 {
 func (instance *V2RayInstance) Close() error {
 	if instance.started {
 		instance.core.Close()
+		if instance.LocalResolver != nil {
+			localdns.SetLookupFunc(nil)
+			localdns.SetRawQueryFunc(nil)
+		}
 		instance.core = nil
 		instance.statsManager = nil
 		instance.observatory = nil

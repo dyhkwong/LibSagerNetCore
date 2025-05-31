@@ -22,7 +22,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/task"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
-	"github.com/v2fly/v2ray-core/v5/features/dns/localdns"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 	"libcore/comm"
 	"libcore/gvisor"
@@ -73,7 +72,6 @@ type TunConfig struct {
 	DumpUID             bool
 	TrafficStats        bool
 	PCap                bool
-	LocalResolver       LocalResolver
 	ProtectPath         string
 }
 
@@ -130,7 +128,7 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 	}
 
 	lookupFunc := func(network, host string) ([]net.IP, error) {
-		response, err := config.LocalResolver.LookupIP(network, host)
+		response, err := config.V2Ray.LocalResolver.LookupIP(network, host)
 		if err != nil {
 			errStr := err.Error()
 			if strings.HasPrefix(errStr, "rcode") {
@@ -189,20 +187,11 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 		},
 	})
 
-	localdns.SetLookupFunc(lookupFunc)
-	if config.LocalResolver.SupportExchange() {
-		localdns.SetRawQueryFunc(func(b []byte) ([]byte, error) {
-			return config.LocalResolver.Exchange(b)
-		})
-	}
-
 	return t, nil
 }
 
 func (t *Tun2ray) Close() {
 	internet.UseAlternativeSystemDialer(nil)
-	localdns.SetLookupFunc(nil)
-	localdns.SetRawQueryFunc(nil)
 	comm.CloseIgnore(t.dev)
 	t.connectionsLock.Lock()
 	for item := t.connections.Front(); item != nil; item = item.Next() {
