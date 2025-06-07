@@ -18,6 +18,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/bytespool"
+	"github.com/v2fly/v2ray-core/v5/common/log"
 	v2rayNet "github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -309,6 +310,12 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 
 	inbound.Conn = conn
 
+	ctx = log.ContextWithAccessMessage(ctx, &log.AccessMessage{
+		From:   source,
+		To:     destination,
+		Status: log.AccessAccepted,
+	})
+
 	proxyConn, err := t.v2ray.dial(ctx, destination)
 	if err != nil {
 		newError("[TCP] dial failed: ", err).WriteToLog()
@@ -447,6 +454,12 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 			SniffingRequest: req,
 		})
 	}
+
+	ctx = log.ContextWithAccessMessage(ctx, &log.AccessMessage{
+		From:   source,
+		To:     destination,
+		Status: log.AccessAccepted,
+	})
 
 	conn, err := t.v2ray.dialUDP(ctx)
 	if err != nil {
