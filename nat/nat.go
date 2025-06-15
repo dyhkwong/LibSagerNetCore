@@ -3,7 +3,7 @@ package nat
 import (
 	"os"
 
-	"github.com/v2fly/v2ray-core/v5/common/buf"
+	"github.com/v2fly/v2ray-core/v5/common/bytespool"
 	"golang.org/x/sys/unix"
 	"gvisor.dev/gvisor/pkg/buffer"
 	"gvisor.dev/gvisor/pkg/rawfile"
@@ -56,9 +56,8 @@ func New(dev int32, mtu int32, handler tun.Handler, ipv6Mode int32) (*SystemTun,
 }
 
 func (t *SystemTun) dispatchLoop() {
-	cache := buf.NewWithSize(int32(t.mtu))
-	defer cache.Release()
-	data := cache.Extend(cache.Cap())
+	data := bytespool.Alloc(int32(t.mtu))
+	defer bytespool.Free(data)
 
 	device := os.NewFile(uintptr(t.dev), "tun")
 
@@ -67,13 +66,7 @@ func (t *SystemTun) dispatchLoop() {
 		if err != nil {
 			break
 		}
-		cache.Clear()
-		cache.Resize(0, int32(n))
-		packet := data[:n]
-		if t.deliverPacket(cache, packet) {
-			cache = buf.NewWithSize(int32(t.mtu))
-			data = cache.Extend(cache.Cap())
-		}
+		t.deliverPacket(data[:n])
 	}
 }
 
@@ -96,7 +89,7 @@ func (t *SystemTun) writeBuffer(bytes []byte) tcpip.Error {
 	return nil
 }
 
-func (t *SystemTun) deliverPacket(cache *buf.Buffer, packet []byte) bool {
+func (t *SystemTun) deliverPacket(packet []byte) {
 	switch header.IPVersion(packet) {
 	case header.IPv4Version:
 		ipHdr := header.IPv4(packet)
@@ -104,10 +97,9 @@ func (t *SystemTun) deliverPacket(cache *buf.Buffer, packet []byte) bool {
 		case header.TCPProtocolNumber:
 			t.tcpForwarder.processIPv4(ipHdr, ipHdr.Payload())
 		case header.UDPProtocolNumber:
-			t.processIPv4UDP(cache, ipHdr, ipHdr.Payload())
-			return true
+			t.processIPv4UDP(ipHdr, ipHdr.Payload())
 		case header.ICMPv4ProtocolNumber:
-			return t.processICMPv4(ipHdr, ipHdr.Payload())
+			t.processICMPv4(ipHdr, ipHdr.Payload())
 		}
 	case header.IPv6Version:
 		pkt := stack.NewPacketBuffer(stack.PacketBufferOptions{
@@ -116,20 +108,19 @@ func (t *SystemTun) deliverPacket(cache *buf.Buffer, packet []byte) bool {
 		proto, _, _, _, ok := parse.IPv6(pkt)
 		pkt.DecRef()
 		if !ok {
-			return false
+			return
 		}
 		ipHdr := header.IPv6(packet)
 		switch proto {
 		case header.TCPProtocolNumber:
 			t.tcpForwarder.processIPv6(ipHdr, ipHdr.Payload())
 		case header.UDPProtocolNumber:
-			t.processIPv6UDP(cache, ipHdr, ipHdr.Payload())
-			return true
+			t.processIPv6UDP(ipHdr, ipHdr.Payload())
 		case header.ICMPv6ProtocolNumber:
-			return t.processICMPv6(ipHdr, ipHdr.Payload())
+			t.processICMPv6(ipHdr, ipHdr.Payload())
 		}
 	}
-	return false
+	return
 }
 
 func (t *SystemTun) Close() error {

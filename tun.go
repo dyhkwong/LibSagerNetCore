@@ -319,9 +319,9 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 	proxyConn, err := t.v2ray.dial(ctx, destination)
 	if err != nil {
 		newError("[TCP] dial failed: ", err).WriteToLog()
+		comm.CloseIgnore(conn)
 		return
 	}
-	defer comm.CloseIgnore(proxyConn)
 	_ = task.Run(ctx, func() error {
 		_ = buf.Copy(buf.NewReader(conn), buf.NewWriter(proxyConn))
 		return io.EOF
@@ -329,15 +329,14 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		_ = buf.Copy(buf.NewReader(proxyConn), buf.NewWriter(conn))
 		return io.EOF
 	})
-
-	comm.CloseIgnore(conn)
+	comm.CloseIgnore(conn, proxyConn)
 
 	t.connectionsLock.Lock()
 	t.connections.Remove(element)
 	t.connectionsLock.Unlock()
 }
 
-func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.Destination, data *buf.Buffer, writeBack func([]byte, *net.UDPAddr) (int, error), closer io.Closer) {
+func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.Destination, data []byte, writeBack func([]byte, *net.UDPAddr) (int, error)) {
 	natKey := source.NetAddr()
 
 	sendTo := func() bool {
@@ -346,7 +345,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 			return false
 		}
 		conn := iConn.(net.PacketConn)
-		_, err := conn.WriteTo(data.Bytes(), &net.UDPAddr{
+		_, err := conn.WriteTo(data, &net.UDPAddr{
 			IP:   destination.Address.IP(),
 			Port: int(destination.Port),
 		})
@@ -359,7 +358,6 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 	var cond *sync.Cond
 
 	if sendTo() {
-		comm.CloseIgnore(closer)
 		return
 	} else {
 		iCond, loaded := t.lockTable.LoadOrStore(natKey, sync.NewCond(&sync.Mutex{}))
@@ -369,8 +367,6 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 			cond.Wait()
 			sendTo()
 			cond.L.Unlock()
-
-			comm.CloseIgnore(closer)
 			return
 		}
 	}
@@ -531,7 +527,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		}
 	}
 	bytespool.Free(buffer)
-	comm.CloseIgnore(conn, closer)
+	comm.CloseIgnore(conn)
 	t.udpTable.Delete(natKey)
 
 	t.connectionsLock.Lock()

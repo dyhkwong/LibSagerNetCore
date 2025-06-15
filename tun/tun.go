@@ -3,7 +3,6 @@ package tun
 import (
 	"io"
 
-	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
@@ -13,5 +12,5 @@ type Tun interface {
 
 type Handler interface {
 	NewConnection(source net.Destination, destination net.Destination, conn net.Conn)
-	NewPacket(source net.Destination, destination net.Destination, data *buf.Buffer, writeBack func([]byte, *net.UDPAddr) (int, error), closer io.Closer)
+	NewPacket(source net.Destination, destination net.Destination, data []byte, writeBack func([]byte, *net.UDPAddr) (int, error))
 }
