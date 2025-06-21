@@ -11,7 +11,6 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/header"
 	"gvisor.dev/gvisor/pkg/tcpip/header/parse"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
-	"libcore/comm"
 	"libcore/tun"
 )
 
@@ -28,26 +27,24 @@ type SystemTun struct {
 	dev          int
 	mtu          int
 	handler      tun.Handler
-	ipv6Mode     int32
+	enableIPv6   bool
 	tcpForwarder *tcpForwarder
 }
 
-func New(dev int32, mtu int32, handler tun.Handler, ipv6Mode int32) (*SystemTun, error) {
+func New(dev int32, mtu int32, handler tun.Handler, enableIPv6 bool) (*SystemTun, error) {
 	t := &SystemTun{
-		dev:      int(dev),
-		mtu:      int(mtu),
-		handler:  handler,
-		ipv6Mode: ipv6Mode,
+		dev:        int(dev),
+		mtu:        int(mtu),
+		handler:    handler,
+		enableIPv6: enableIPv6,
 	}
 	tcpServer, err := newTcpForwarder(t)
 	if err != nil {
 		return nil, err
 	}
 	t.tcpForwarder = tcpServer
-	if t.ipv6Mode != comm.IPv6Only {
-		go tcpServer.dispatchLoop(tcpServer.listener4)
-	}
-	if t.ipv6Mode != comm.IPv6Disable {
+	go tcpServer.dispatchLoop(tcpServer.listener4)
+	if t.enableIPv6 {
 		go tcpServer.dispatchLoop(tcpServer.listener6)
 	}
 

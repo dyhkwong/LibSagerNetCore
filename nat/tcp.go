@@ -26,18 +26,16 @@ func newTcpForwarder(tun *SystemTun) (*tcpForwarder, error) {
 		tun:      tun,
 		sessions: comm.NewLruCache(300, true),
 	}
-	if tun.ipv6Mode != comm.IPv6Only {
-		address := &net.TCPAddr{}
-		address.IP = net.IP(vlanClient4.AsSlice())
-		listener, err := net.ListenTCP("tcp4", address)
-		if err != nil {
-			return nil, newError("failed to create tcp forwarder at ", address.IP).Base(err)
-		}
-		tcpForwarder.listener4 = listener
-		tcpForwarder.port4 = uint16(listener.Addr().(*net.TCPAddr).Port)
-		newError("tcp forwarder started at ", listener.Addr().(*net.TCPAddr)).AtDebug().WriteToLog()
+	address := &net.TCPAddr{}
+	address.IP = net.IP(vlanClient4.AsSlice())
+	listener, err := net.ListenTCP("tcp4", address)
+	if err != nil {
+		return nil, newError("failed to create tcp forwarder at ", address.IP).Base(err)
 	}
-	if tun.ipv6Mode != comm.IPv6Disable {
+	tcpForwarder.listener4 = listener
+	tcpForwarder.port4 = uint16(listener.Addr().(*net.TCPAddr).Port)
+	newError("tcp forwarder started at ", listener.Addr().(*net.TCPAddr)).AtDebug().WriteToLog()
+	if tun.enableIPv6 {
 		address := &net.TCPAddr{}
 		address.IP = net.IP(vlanClient6.AsSlice())
 		listener, err := net.ListenTCP("tcp6", address)

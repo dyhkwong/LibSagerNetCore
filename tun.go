@@ -64,7 +64,7 @@ type TunConfig struct {
 	V2Ray               *V2RayInstance
 	Gateway4            string
 	Gateway6            string
-	IPv6Mode            int32
+	EnableIPv6          bool
 	Implementation      int32
 	FakeDNS             bool
 	Sniffing            bool
@@ -111,9 +111,9 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 			}
 		}
 
-		t.dev, err = gvisor.New(config.FileDescriptor, config.MTU, t, gvisor.DefaultNIC, config.PCap, pcapFile, math.MaxUint32, config.IPv6Mode)
+		t.dev, err = gvisor.New(config.FileDescriptor, config.MTU, t, gvisor.DefaultNIC, config.PCap, pcapFile, math.MaxUint32, config.EnableIPv6)
 	case comm.TunImplementationSystem:
-		t.dev, err = nat.New(config.FileDescriptor, config.MTU, t, config.IPv6Mode)
+		t.dev, err = nat.New(config.FileDescriptor, config.MTU, t, config.EnableIPv6)
 	}
 
 	if err != nil {
@@ -160,31 +160,11 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 	internet.UseAlternativeSystemDialer(&protectedDialer{
 		protector: config.Protector,
 		resolver: func(domain string) ([]net.IP, error) {
-			network := "ip"
-			switch config.IPv6Mode {
-			case comm.IPv6Disable:
-				network = "ip4"
-			case comm.IPv6Only:
-				network = "ip6"
+			network := "ip4"
+			if config.EnableIPv6 {
+				network = "ip"
 			}
-			ips, err := lookupFunc(network, domain)
-			if err != nil || len(ips) == 0 || config.IPv6Mode == comm.IPv6Disable || config.IPv6Mode == comm.IPv6Only {
-				return ips, err
-			}
-			ipv4 := make([]net.IP, 0)
-			ipv6 := make([]net.IP, 0)
-			for _, ip := range ips {
-				if ip.To4() != nil {
-					ipv4 = append(ipv4, ip.To4())
-				} else {
-					ipv6 = append(ipv6, ip)
-				}
-			}
-			if config.IPv6Mode == comm.IPv6Prefer {
-				return append(ipv6, ipv4...), err
-			}
-			// config.IPv6Mode == comm.IPv6Enable
-			return append(ipv4, ipv6...), err
+			return lookupFunc(network, domain)
 		},
 	})
 

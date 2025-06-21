@@ -16,7 +16,6 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/transport/icmp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
-	"libcore/comm"
 	"libcore/tun"
 )
 
@@ -40,7 +39,7 @@ func (t *GVisor) Close() error {
 
 const DefaultNIC tcpip.NICID = 0x01
 
-func New(dev int32, mtu int32, handler tun.Handler, nicId tcpip.NICID, pcap bool, pcapFile *os.File, snapLen uint32, ipv6Mode int32) (*GVisor, error) {
+func New(dev int32, mtu int32, handler tun.Handler, nicId tcpip.NICID, pcap bool, pcapFile *os.File, snapLen uint32, enableIPv6 bool) (*GVisor, error) {
 	var endpoint stack.LinkEndpoint
 	endpoint, _ = newRwEndpoint(dev, mtu)
 	if pcap {
@@ -51,30 +50,7 @@ func New(dev int32, mtu int32, handler tun.Handler, nicId tcpip.NICID, pcap bool
 		endpoint = pcapEndpoint
 	}
 	var o stack.Options
-	switch ipv6Mode {
-	case comm.IPv6Disable:
-		o = stack.Options{
-			NetworkProtocols: []stack.NetworkProtocolFactory{
-				ipv4.NewProtocol,
-			},
-			TransportProtocols: []stack.TransportProtocolFactory{
-				tcp.NewProtocol,
-				udp.NewProtocol,
-				icmp.NewProtocol4,
-			},
-		}
-	case comm.IPv6Only:
-		o = stack.Options{
-			NetworkProtocols: []stack.NetworkProtocolFactory{
-				ipv6.NewProtocol,
-			},
-			TransportProtocols: []stack.TransportProtocolFactory{
-				tcp.NewProtocol,
-				udp.NewProtocol,
-				icmp.NewProtocol6,
-			},
-		}
-	default:
+	if enableIPv6 {
 		o = stack.Options{
 			NetworkProtocols: []stack.NetworkProtocolFactory{
 				ipv4.NewProtocol,
@@ -85,6 +61,17 @@ func New(dev int32, mtu int32, handler tun.Handler, nicId tcpip.NICID, pcap bool
 				udp.NewProtocol,
 				icmp.NewProtocol4,
 				icmp.NewProtocol6,
+			},
+		}
+	} else {
+		o = stack.Options{
+			NetworkProtocols: []stack.NetworkProtocolFactory{
+				ipv4.NewProtocol,
+			},
+			TransportProtocols: []stack.TransportProtocolFactory{
+				tcp.NewProtocol,
+				udp.NewProtocol,
+				icmp.NewProtocol4,
 			},
 		}
 	}
