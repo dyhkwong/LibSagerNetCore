@@ -107,6 +107,31 @@ func New(dev int32, mtu int32, handler tun.Handler, nicId tcpip.NICID, pcap bool
 
 	gTcpHandler(s, handler)
 	gUdpHandler(s, handler)
+	// Uncomment if we have to upgrade gvisor one day.
+	/*s.SetTransportProtocolHandler(icmp.ProtocolNumber4, func(id stack.TransportEndpointID, pkt *stack.PacketBuffer) bool {
+		// workaround https://github.com/google/gvisor/commit/868dfbce4fd59f03145e2bc5ac0b585917c371fa
+		// This change makes it impossible to restore the old promiscuous mode behavior without reimplementing ICMP in a custom handler.
+		hdr := header.ICMPv4(pkt.TransportHeader().Slice())
+		if hdr.Type() != header.ICMPv4Echo {
+			return false
+		}
+		ipHdr := header.IPv4(pkt.NetworkHeader().Slice())
+		sourceAddress := ipHdr.SourceAddress()
+		ipHdr.SetSourceAddress(ipHdr.DestinationAddress())
+		ipHdr.SetDestinationAddress(sourceAddress)
+		ipHdr.SetChecksum(0)
+		ipHdr.SetChecksum(^ipHdr.CalculateChecksum())
+		hdr.SetType(header.ICMPv4EchoReply)
+		hdr.SetChecksum(0)
+		hdr.SetChecksum(header.ICMPv4Checksum(hdr, pkt.Data().Checksum()))
+		var pkts stack.PacketBufferList
+		pkts.PushBack(pkt)
+		_, err := endpoint.WritePackets(pkts)
+		if err != nil {
+			return false
+		}
+		return true
+	})*/
 	gMust(s.CreateNIC(nicId, endpoint))
 	gMust(s.SetSpoofing(nicId, true))
 	gMust(s.SetPromiscuousMode(nicId, true))
