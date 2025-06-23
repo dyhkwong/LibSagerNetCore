@@ -8,7 +8,7 @@ require (
 	github.com/quic-go/quic-go v0.52.0
 	github.com/sagernet/gomobile v0.1.6
 	github.com/sirupsen/logrus v1.9.3
-	github.com/v2fly/v2ray-core/v5 v5.33.0
+	github.com/v2fly/v2ray-core/v5 v5.34.0
 	github.com/wzshiming/socks5 v0.5.2
 	golang.org/x/sys v0.33.0
 	gvisor.dev/gvisor v0.0.0-20250503011706-39ed1f5ac29c
@@ -16,20 +16,26 @@ require (
 
 require (
 	github.com/adrg/xdg v0.5.3 // indirect
+	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/aead/cmac v0.0.0-20160719120800-7af84192f0b1 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/anytls/sing-anytls v0.0.8 // indirect
+	github.com/apernet/quic-go v0.52.1-0.20250607183305-9320c9d14431 // indirect
 	github.com/boljen/go-bitmap v0.0.0-20151001105940-23cd2fb0ce7d // indirect
-	github.com/cloudflare/circl v1.5.0 // indirect
+	github.com/cloudflare/circl v1.6.1 // indirect
+	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
-	github.com/dyhkwong/hysteria/core/v2 v2.6.1-1 // indirect
-	github.com/dyhkwong/hysteria/extras/v2 v2.6.1-1 // indirect
+	github.com/dgryski/go-rc2 v0.0.0-20150621095337-8a9021637152 // indirect
+	github.com/dyhkwong/hysteria/core/v2 v2.6.2-1 // indirect
+	github.com/dyhkwong/hysteria/extras/v2 v2.6.2-1 // indirect
+	github.com/geeksbaek/seed v0.0.0-20230518075847-04d3af63848d // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/gofrs/uuid/v5 v5.3.2 // indirect
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/pprof v0.0.0-20231101202521-4ca4178f5c7a // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/kierdavis/cfb8 v0.0.0-20180105024805-3a17c36ee2f8 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/klauspost/cpuid v1.2.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
@@ -63,7 +69,7 @@ require (
 	github.com/v2fly/struc v0.0.0-20241227015403-8e8fa1badfd6 // indirect
 	github.com/xiaokangwang/VLite v0.0.0-20231225174116-75fa4b06e9f2 // indirect
 	github.com/xtaci/smux v1.5.15 // indirect
-	github.com/xtls/reality v0.0.0-20250607105625-90e738a94c8c // indirect
+	github.com/xtls/reality v0.0.0-20250527000105-e679ef7bb130 // indirect
 	go.uber.org/mock v0.5.2 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/crypto v0.39.0 // indirect
@@ -87,4 +93,4 @@ replace gvisor.dev/gvisor => gvisor.dev/gvisor v0.0.0-20250429202743-3a608a52255
 
 //replace github.com/v2fly/v2ray-core/v5 => ../../../v2ray-core
 
-replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.33.1-0.20250607160612-2a41072b416c
+replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.34.1-0.20250623191359-9b7559399eaf
