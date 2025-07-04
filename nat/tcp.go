@@ -195,6 +195,8 @@ func (t *tcpForwarder) processIPv6(ipHdr header.IPv6, tcpHdr header.TCP) {
 
 func (t *tcpForwarder) Close() error {
 	_ = t.listener4.Close()
-	_ = t.listener6.Close()
+	if t.listener6 != nil {
+		_ = t.listener6.Close()
+	}
 	return nil
 }
