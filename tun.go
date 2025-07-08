@@ -39,7 +39,6 @@ type Tun2ray struct {
 	fakedns             bool
 	sniffing            bool
 	overrideDestination bool
-	debug               bool
 
 	dumpUID      bool
 	trafficStats bool
@@ -83,7 +82,6 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 		sniffing:            config.Sniffing,
 		overrideDestination: config.OverrideDestination,
 		fakedns:             config.FakeDNS,
-		debug:               config.Debug,
 		dumpUID:             config.DumpUID,
 		trafficStats:        config.TrafficStats,
 	}
@@ -204,23 +202,15 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		u, err := dumpUID(source, destination)
 		if err == nil {
 			uid = uint16(u)
-			var info *UIDInfo
-			self = uid > 0 && int(uid) == os.Getuid()
-			if t.debug && !self && uid >= 10000 {
-				if err == nil {
-					info, _ = uidDumper.GetUIDInfo(int32(uid))
-				}
+			self = int(uid) == os.Getuid()
+			if !self {
+				info, _ := uidDumper.GetUIDInfo(int32(uid))
 				if info == nil {
 					newError("[TCP] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog()
 				} else {
 					newError("[TCP][", info.Label, " (", uid, "/", info.PackageName, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog()
 				}
 			}
-
-			if uid < 10000 {
-				uid = 1000
-			}
-
 			inbound.UID = uint32(uid)
 		}
 	}
@@ -365,44 +355,24 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 	if t.dumpUID || t.trafficStats {
 		u, err := dumpUID(source, destination)
 		if err == nil {
-			if u > 19999 {
-				newError("bad connection owner ", u, ", reset to android.").AtDebug().WriteToLog()
-				u = 1000
-			}
-
 			uid = uint16(u)
-			var info *UIDInfo
-			self = uid > 0 && int(uid) == os.Getuid()
-
-			if t.debug && !self && uid >= 1000 {
-				if err == nil {
-					info, err = uidDumper.GetUIDInfo(int32(uid))
-					if err != nil {
-						uid = 1000
-						info, err = uidDumper.GetUIDInfo(int32(uid))
-					}
-				}
+			self = int(uid) == os.Getuid()
+			if !self {
+				info, _ := uidDumper.GetUIDInfo(int32(uid))
 				var tag string
 				if !isDns {
 					tag = "UDP"
 				} else {
 					tag = "DNS"
 				}
-
 				if info == nil {
 					newError("[", tag, "] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog()
 				} else {
 					newError("[", tag, "][", info.Label, " (", uid, "/", info.PackageName, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog()
 				}
 			}
-
-			if uid < 10000 {
-				uid = 1000
-			}
-
 			inbound.UID = uint32(uid)
 		}
-
 	}
 
 	ctx := toContext(context.Background(), t.v2ray.core)
