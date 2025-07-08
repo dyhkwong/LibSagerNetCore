@@ -16,7 +16,6 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/sirupsen/logrus"
 	appLog "github.com/v2fly/v2ray-core/v5/app/log"
 	commonLog "github.com/v2fly/v2ray-core/v5/common/log"
 )
@@ -25,54 +24,6 @@ var (
 	tag      = C.CString("libcore")
 	tagV2Ray = C.CString("v2ray-core")
 )
-
-var levels = []logrus.Level{
-	logrus.PanicLevel,
-	logrus.FatalLevel,
-	logrus.ErrorLevel,
-	logrus.WarnLevel,
-	logrus.InfoLevel,
-	logrus.DebugLevel,
-}
-
-type androidHook struct{}
-
-type androidFormatter struct{}
-
-func (f *androidFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	return []byte(entry.Message), nil
-}
-
-func (hook *androidHook) Levels() []logrus.Level {
-	return levels
-}
-
-func (hook *androidHook) Fire(e *logrus.Entry) error {
-	formatted, err := logrus.StandardLogger().Formatter.Format(e)
-	if err != nil {
-		return err
-	}
-	str := C.CString(string(formatted))
-
-	var priority C.int
-	switch e.Level {
-	case logrus.PanicLevel:
-		priority = C.ANDROID_LOG_FATAL
-	case logrus.FatalLevel:
-		priority = C.ANDROID_LOG_FATAL
-	case logrus.ErrorLevel:
-		priority = C.ANDROID_LOG_ERROR
-	case logrus.WarnLevel:
-		priority = C.ANDROID_LOG_WARN
-	case logrus.InfoLevel:
-		priority = C.ANDROID_LOG_INFO
-	case logrus.DebugLevel:
-		priority = C.ANDROID_LOG_DEBUG
-	}
-	C.__android_log_write(priority, tag, str)
-	C.free(unsafe.Pointer(str))
-	return nil
-}
 
 type v2rayLogWriter struct{}
 
@@ -116,8 +67,6 @@ func (stdLogWriter) Write(p []byte) (n int, err error) {
 func init() {
 	log.SetOutput(stdLogWriter{})
 	log.SetFlags(log.Flags() &^ log.LstdFlags)
-	logrus.SetFormatter(&androidFormatter{})
-	logrus.AddHook(&androidHook{})
 
 	_ = appLog.RegisterHandlerCreator(appLog.LogType_Console, func(lt appLog.LogType,
 		options appLog.HandlerCreatorOptions,

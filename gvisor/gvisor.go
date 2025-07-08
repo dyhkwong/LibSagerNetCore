@@ -1,11 +1,9 @@
 package gvisor
 
 import (
-	"errors"
 	"io"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/header"
@@ -146,17 +144,17 @@ type pcapFileWrapper struct {
 func (w *pcapFileWrapper) Write(p []byte) (n int, err error) {
 	n, err = w.Writer.Write(p)
 	if err != nil {
-		logrus.Debug("write pcap file failed: ", err)
+		newError("write pcap file failed").Base(err).AtDebug().WriteToLog()
 	}
 	return n, err
 }
 
 func gMust(err tcpip.Error) {
 	if err != nil {
-		logrus.Panicln(err.String())
+		newError(err).AtError().WriteToLog()
 	}
 }
 
 func tcpipErr(err tcpip.Error) error {
-	return errors.New(err.String())
+	return newError(err.String())
 }

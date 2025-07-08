@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 	_ "unsafe"
-
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -32,7 +30,7 @@ func setupMozillaCAProvider() error {
 	if err != nil {
 		return err
 	}
-	logrus.Info("load ", mozillaIncludedPem, " from ", pemPath)
+	newError("load ", mozillaIncludedPem, " from ", pemPath).AtInfo().WriteToLog()
 	x509.SystemCertPool()
 	roots := x509.NewCertPool()
 	if !roots.AppendCertsFromPEM(pemFile) {
@@ -48,19 +46,19 @@ func UpdateSystemRoots(caProvider int32) {
 	switch caProvider {
 	case caProviderSystem:
 		systemRoots, _ = x509.SystemCertPool()
-		logrus.Info("using system CA provider")
+		newError("using system CA provider").AtInfo().WriteToLog()
 	case caProviderMozilla:
 		if err := setupMozillaCAProvider(); err != nil {
-			logrus.Error(err)
+			newError(err).AtError().WriteToLog()
 			return
 		}
-		logrus.Info("using Mozilla CA provider")
+		newError("using Mozilla CA provider").AtInfo().WriteToLog()
 	case caProviderSystemAndUser:
 		if err := setupSystemAndUserCAProvider(); err != nil {
-			logrus.Error(err)
+			newError(err).AtError().WriteToLog()
 			return
 		}
-		logrus.Info("using system and user CA provider")
+		newError("using system and user CA provider").AtInfo().WriteToLog()
 	}
 }
 
@@ -106,7 +104,7 @@ func setupSystemAndUserCAProvider() error {
 	for _, path := range paths {
 		bytes, err := os.ReadFile(path)
 		if err != nil {
-			logrus.Error("failed to read certificate ", path, ": ", err)
+			newError("failed to read certificate ", path).Base(err).AtError().WriteToLog()
 			continue
 		}
 		certs, parseErr := x509.ParseCertificates(bytes)
@@ -127,7 +125,7 @@ func setupSystemAndUserCAProvider() error {
 			}
 		}
 		if parseErr != nil {
-			logrus.Error("failed to parse certificate ", path)
+			newError("failed to parse certificate ", path).AtError().WriteToLog()
 			continue
 		}
 		for _, cert := range certs {
@@ -136,7 +134,7 @@ func setupSystemAndUserCAProvider() error {
 				Bytes: cert.Raw,
 			}
 			if err := pem.Encode(pemFile, block); err != nil {
-				logrus.Error("failed to encode certificate ", path)
+				newError("failed to encode certificate ", path).AtError().WriteToLog()
 				continue
 			}
 			roots.AddCert(cert)

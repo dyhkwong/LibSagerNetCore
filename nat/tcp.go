@@ -4,7 +4,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	v2rayNet "github.com/v2fly/v2ray-core/v5/common/net"
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/checksum"
@@ -127,7 +126,7 @@ func (t *tcpForwarder) processIPv4(ipHdr header.IPv4, tcpHdr header.TCP) {
 		if ok {
 			session = iSession.(*peerValue)
 		} else {
-			logrus.Warn("unknown tcp session with source port ", destinationPort, " to destination address ", destinationAddress)
+			newError("unknown tcp session with source port ", destinationPort, " to destination address ", destinationAddress).AtWarning().WriteToLog()
 			return
 		}
 		ipHdr.SetSourceAddress(destinationAddress)
@@ -175,7 +174,7 @@ func (t *tcpForwarder) processIPv6(ipHdr header.IPv6, tcpHdr header.TCP) {
 		if ok {
 			session = iSession.(*peerValue)
 		} else {
-			logrus.Warn("unknown tcp session with source port ", destinationPort, " to destination address ", destinationAddress)
+			newError("unknown tcp session with source port ", destinationPort, " to destination address ", destinationAddress).AtWarning().WriteToLog()
 			return
 		}
 

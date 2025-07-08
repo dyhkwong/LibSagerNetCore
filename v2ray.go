@@ -2,7 +2,6 @@ package libcore
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -61,10 +60,10 @@ func (instance *V2RayInstance) LoadConfig(content string) error {
 
 func (instance *V2RayInstance) Start() error {
 	if instance.started {
-		return errors.New("already started")
+		return newError("already started")
 	}
 	if instance.core == nil {
-		return errors.New("not initialized")
+		return newError("not initialized")
 	}
 
 	if instance.LocalResolver != nil {

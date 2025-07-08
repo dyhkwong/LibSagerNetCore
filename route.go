@@ -1,12 +1,10 @@
 package libcore
 
-import "github.com/sirupsen/logrus"
-
 var networkType string
 
 func SetNetworkType(newNetworkType string) {
 	if newNetworkType != networkType {
-		logrus.Debug("updated network type: ", newNetworkType)
+		newError("updated network type: ", newNetworkType).AtDebug().WriteToLog()
 		networkType = newNetworkType
 	}
 }
@@ -15,7 +13,7 @@ var ssid string
 
 func SetSSID(newSSID string) {
 	if newSSID != ssid {
-		logrus.Debug("updated SSID: ", newSSID)
+		newError("updated SSID: ", newSSID).AtDebug().WriteToLog()
 		ssid = newSSID
 	}
 }

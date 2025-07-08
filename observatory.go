@@ -2,7 +2,6 @@ package libcore
 
 import (
 	"github.com/golang/protobuf/proto"
-	"github.com/sirupsen/logrus"
 	"github.com/v2fly/v2ray-core/v5/app/observatory"
 	"github.com/v2fly/v2ray-core/v5/features/extension"
 )
@@ -61,7 +60,7 @@ func (instance *V2RayInstance) SetStatusUpdateListener(tag string, listener Obse
 			status, _ := proto.Marshal(result)
 			err = listener.OnUpdateObservatoryStatus(status)
 			if err != nil {
-				logrus.Warn("failed to send observatory status update: ", err)
+				newError("failed to send observatory status update").Base(err).AtWarning().WriteToLog()
 			}
 		}
 	}

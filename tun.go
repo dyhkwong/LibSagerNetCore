@@ -14,7 +14,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/bytespool"
@@ -77,11 +76,6 @@ type TunConfig struct {
 }
 
 func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
-	if config.Debug {
-		logrus.SetLevel(logrus.DebugLevel)
-	} else {
-		logrus.SetLevel(logrus.WarnLevel)
-	}
 	t := &Tun2ray{
 		mtu:                 config.MTU,
 		router:              config.Gateway4,
@@ -217,9 +211,9 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 					info, _ = uidDumper.GetUIDInfo(int32(uid))
 				}
 				if info == nil {
-					logrus.Infof("[TCP] %s ==> %s", source.NetAddr(), destination.NetAddr())
+					newError("[TCP] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog()
 				} else {
-					logrus.Infof("[TCP][%s (%d/%s)] %s ==> %s", info.Label, uid, info.PackageName, source.NetAddr(), destination.NetAddr())
+					newError("[TCP][", info.Label, " (", uid, "/", info.PackageName, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog()
 				}
 			}
 
@@ -372,7 +366,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		u, err := dumpUID(source, destination)
 		if err == nil {
 			if u > 19999 {
-				logrus.Debug("bad connection owner ", u, ", reset to android.")
+				newError("bad connection owner ", u, ", reset to android.").AtDebug().WriteToLog()
 				u = 1000
 			}
 
@@ -396,9 +390,9 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 				}
 
 				if info == nil {
-					logrus.Infof("[%s] %s ==> %s", tag, source.NetAddr(), destination.NetAddr())
+					newError("[", tag, "] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog()
 				} else {
-					logrus.Infof("[%s][%s (%d/%s)] %s ==> %s", tag, info.Label, uid, info.PackageName, source.NetAddr(), destination.NetAddr())
+					newError("[", tag, "][", info.Label, " (", uid, "/", info.PackageName, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog()
 				}
 			}
 
@@ -439,7 +433,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 
 	conn, err := t.v2ray.dialUDP(ctx)
 	if err != nil {
-		logrus.Errorf("[UDP] dial failed: %s", err.Error())
+		newError("[UDP] dial failed").Base(err).AtError().WriteToLog()
 		return
 	}
 
