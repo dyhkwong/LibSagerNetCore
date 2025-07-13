@@ -7,9 +7,9 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/quic-go/quic-go v0.53.0
 	github.com/sagernet/gomobile v0.1.7
-	github.com/v2fly/v2ray-core/v5 v5.35.0
+	github.com/v2fly/v2ray-core/v5 v5.37.0
 	github.com/wzshiming/socks5 v0.5.2
-	golang.org/x/sys v0.33.0
+	golang.org/x/sys v0.34.0
 	gvisor.dev/gvisor v0.0.0-20250503011706-39ed1f5ac29c
 )
 
@@ -40,7 +40,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
 	github.com/klauspost/reedsolomon v1.9.3 // indirect
 	github.com/lunixbochs/struc v0.0.0-20200707160740-784aaebc1d40 // indirect
-	github.com/miekg/dns v1.1.66 // indirect
+	github.com/miekg/dns v1.1.67 // indirect
 	github.com/mustafaturan/bus v1.0.2 // indirect
 	github.com/mustafaturan/monoton v1.0.0 // indirect
 	github.com/onsi/ginkgo/v2 v2.9.7 // indirect
@@ -57,7 +57,7 @@ require (
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/sagernet/quic-go v0.52.0-beta.1 // indirect
 	github.com/sagernet/sing v0.6.11 // indirect
-	github.com/sagernet/sing-quic v0.5.0-beta.2 // indirect
+	github.com/sagernet/sing-quic v0.5.0-beta.3 // indirect
 	github.com/sagernet/sing-shadowsocks v0.2.8 // indirect
 	github.com/sagernet/sing-shadowsocks2 v0.2.1 // indirect
 	github.com/sagernet/sing-shadowtls v0.2.0 // indirect
@@ -71,14 +71,14 @@ require (
 	github.com/xtls/reality v0.0.0-20250527000105-e679ef7bb130 // indirect
 	go.uber.org/mock v0.5.2 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
-	golang.org/x/crypto v0.39.0 // indirect
+	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/mod v0.25.0 // indirect
-	golang.org/x/net v0.41.0 // indirect
-	golang.org/x/sync v0.15.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
+	golang.org/x/net v0.42.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
+	golang.org/x/text v0.27.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
-	golang.org/x/tools v0.33.0 // indirect
+	golang.org/x/tools v0.34.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
@@ -92,4 +92,4 @@ replace gvisor.dev/gvisor => gvisor.dev/gvisor v0.0.0-20250429202743-3a608a52255
 
 //replace github.com/v2fly/v2ray-core/v5 => ../../../v2ray-core
 
-replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.35.1-0.20250705121140-c7dcdbca64fc
+replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.37.1-0.20250712062558-c5637c7c30ab
