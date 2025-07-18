@@ -217,6 +217,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 
 	ctx := toContext(context.Background(), t.v2ray.core)
 	ctx = session.ContextWithInbound(ctx, inbound)
+	ctx = session.ContextWithID(ctx, session.NewID())
 
 	if !isDns && (t.sniffing || t.fakedns) {
 		req := session.SniffingRequest{
@@ -280,7 +281,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 
 	proxyConn, err := t.v2ray.dial(ctx, destination)
 	if err != nil {
-		newError("[TCP] dial failed: ", err).WriteToLog()
+		newError(err).AtError().WriteToLog(session.ExportIDToError(ctx))
 		comm.CloseIgnore(conn)
 		return
 	}
@@ -375,6 +376,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 
 	ctx := toContext(context.Background(), t.v2ray.core)
 	ctx = session.ContextWithInbound(ctx, inbound)
+	ctx = session.ContextWithID(ctx, session.NewID())
 
 	if !isDns && (t.sniffing || t.fakedns) {
 		req := session.SniffingRequest{
@@ -401,7 +403,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 
 	conn, err := t.v2ray.dialUDP(ctx)
 	if err != nil {
-		newError("[UDP] dial failed").Base(err).AtError().WriteToLog()
+		newError(err).AtError().WriteToLog(session.ExportIDToError(ctx))
 		return
 	}
 
