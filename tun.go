@@ -272,8 +272,6 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 	element := t.connections.PushBack(conn)
 	t.connectionsLock.Unlock()
 
-	inbound.Conn = conn
-
 	ctx = log.ContextWithAccessMessage(ctx, &log.AccessMessage{
 		From:   source,
 		To:     destination,
