@@ -153,11 +153,7 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 	internet.UseAlternativeSystemDialer(&protectedDialer{
 		protector: config.Protector,
 		resolver: func(domain string) ([]net.IP, error) {
-			network := "ip4"
-			if config.EnableIPv6 {
-				network = "ip"
-			}
-			return lookupFunc(network, domain)
+			return lookupFunc("ip", domain)
 		},
 	})
 
