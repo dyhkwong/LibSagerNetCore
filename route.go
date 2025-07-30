@@ -1,19 +1,23 @@
 package libcore
 
-var networkType string
+import (
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/inbound"
+)
+
+type UidDumper inbound.UidDumper
+
+func SetUidDumper(uidDumper UidDumper, useProcfs bool) {
+	inbound.SetUidDumper(uidDumper, useProcfs)
+}
 
 func SetNetworkType(newNetworkType string) {
-	if newNetworkType != networkType {
-		newError("updated network type: ", newNetworkType).AtDebug().WriteToLog()
-		networkType = newNetworkType
+	if inbound.GetNetworkType() != newNetworkType {
+		inbound.SetNetworkType(newNetworkType)
 	}
 }
 
-var ssid string
-
 func SetSSID(newSSID string) {
-	if newSSID != ssid {
-		newError("updated SSID: ", newSSID).AtDebug().WriteToLog()
-		ssid = newSSID
+	if inbound.GetSSID() != newSSID {
+		inbound.SetSSID(newSSID)
 	}
 }

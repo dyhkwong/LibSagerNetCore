@@ -14,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/inbound"
 	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/bytespool"
@@ -177,11 +178,11 @@ func (t *Tun2ray) Close() {
 }
 
 func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNet.Destination, conn net.Conn) {
-	inbound := &session.Inbound{
+	ib := &session.Inbound{
 		Source:      source,
 		Tag:         "tun",
-		NetworkType: networkType,
-		SSID:        ssid,
+		NetworkType: inbound.GetNetworkType(),
+		SSID:        inbound.GetSSID(),
 	}
 
 	isDns := destination.Address.String() == t.router
@@ -192,32 +193,32 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 			t.connectionsLock.Unlock()
 			return
 		}
-		inbound.Tag = "dns-in"
+		ib.Tag = "dns-in"
 	}
+
+	ctx := toContext(context.Background(), t.v2ray.core)
+	ctx = session.ContextWithInbound(ctx, ib)
+	ctx = session.ContextWithID(ctx, session.NewID())
 
 	var uid uint16
 	var self bool
+	uidDumper, _ := inbound.GetUidDumper()
 
-	if t.dumpUID || t.trafficStats {
-		u, err := dumpUID(source, destination)
+	if uidDumper != nil && (t.dumpUID || t.trafficStats) {
+		u, err := inbound.DumpUid(source, destination)
 		if err == nil {
 			uid = uint16(u)
 			self = int(uid) == os.Getuid()
 			if !self {
-				info, _ := uidDumper.GetUIDInfo(int32(uid))
-				if info == nil {
-					newError("[TCP] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog()
+				if packageName, _ := uidDumper.GetPackageName(int32(uid)); len(packageName) == 0 {
+					newError("[TCP (", uid, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 				} else {
-					newError("[TCP][", info.Label, " (", uid, "/", info.PackageName, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog()
+					newError("[TCP (", uid, "/", packageName, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 				}
 			}
-			inbound.UID = uint32(uid)
+			ib.UID = uint32(uid)
 		}
 	}
-
-	ctx := toContext(context.Background(), t.v2ray.core)
-	ctx = session.ContextWithInbound(ctx, inbound)
-	ctx = session.ContextWithID(ctx, session.NewID())
 
 	if !isDns && (t.sniffing || t.fakedns) {
 		req := session.SniffingRequest{
@@ -334,49 +335,43 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		}
 	}
 
-	inbound := &session.Inbound{
+	ib := &session.Inbound{
 		Source:      source,
 		Tag:         "tun",
-		NetworkType: networkType,
-		SSID:        ssid,
+		NetworkType: inbound.GetNetworkType(),
+		SSID:        inbound.GetSSID(),
 	}
 	isDns := destination.Address.String() == t.router
 	if isDns {
 		if destination.Port != 53 {
 			return
 		}
-		inbound.Tag = "dns-in"
+		ib.Tag = "dns-in"
 	}
+
+	ctx := toContext(context.Background(), t.v2ray.core)
+	ctx = session.ContextWithInbound(ctx, ib)
+	ctx = session.ContextWithID(ctx, session.NewID())
 
 	var uid uint16
 	var self bool
+	uidDumper, _ := inbound.GetUidDumper()
 
-	if t.dumpUID || t.trafficStats {
-		u, err := dumpUID(source, destination)
+	if uidDumper != nil && (t.dumpUID || t.trafficStats) {
+		u, err := inbound.DumpUid(source, destination)
 		if err == nil {
 			uid = uint16(u)
 			self = int(uid) == os.Getuid()
 			if !self {
-				info, _ := uidDumper.GetUIDInfo(int32(uid))
-				var tag string
-				if !isDns {
-					tag = "UDP"
+				if packageName, _ := uidDumper.GetPackageName(int32(uid)); len(packageName) == 0 {
+					newError("[UDP (", uid, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 				} else {
-					tag = "DNS"
-				}
-				if info == nil {
-					newError("[", tag, "] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog()
-				} else {
-					newError("[", tag, "][", info.Label, " (", uid, "/", info.PackageName, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog()
+					newError("[UDP (", uid, "/", packageName, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
 				}
 			}
-			inbound.UID = uint32(uid)
+			ib.UID = uint32(uid)
 		}
 	}
-
-	ctx := toContext(context.Background(), t.v2ray.core)
-	ctx = session.ContextWithInbound(ctx, inbound)
-	ctx = session.ContextWithID(ctx, session.NewID())
 
 	if !isDns && (t.sniffing || t.fakedns) {
 		req := session.SniffingRequest{
