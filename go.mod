@@ -26,6 +26,7 @@ require (
 	github.com/dgryski/go-rc2 v0.0.0-20150621095337-8a9021637152 // indirect
 	github.com/dyhkwong/hysteria/core/v2 v2.6.2-1 // indirect
 	github.com/dyhkwong/hysteria/extras/v2 v2.6.2-1 // indirect
+	github.com/dyhkwong/sing-juicity v0.0.1 // indirect
 	github.com/geeksbaek/seed v0.0.0-20230518075847-04d3af63848d // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/gofrs/uuid/v5 v5.3.2 // indirect
@@ -55,10 +56,10 @@ require (
 	github.com/refraction-networking/utls v1.8.0 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/sagernet/quic-go v0.52.0-beta.1 // indirect
-	github.com/sagernet/sing v0.7.5 // indirect
-	github.com/sagernet/sing-quic v0.5.0 // indirect
-	github.com/sagernet/sing-shadowsocks v0.2.8 // indirect
-	github.com/sagernet/sing-shadowsocks2 v0.2.1 // indirect
+	github.com/sagernet/sing v0.7.7 // indirect
+	github.com/sagernet/sing-quic v0.5.1 // indirect
+	github.com/sagernet/sing-shadowsocks v0.2.9 // indirect
+	github.com/sagernet/sing-shadowsocks2 v0.2.2 // indirect
 	github.com/sagernet/sing-shadowtls v0.2.0 // indirect
 	github.com/secure-io/siv-go v0.0.0-20180922214919-5ff40651e2c4 // indirect
 	github.com/seiflotfy/cuckoofilter v0.0.0-20240715131351-a2f2c23f1771 // indirect
@@ -91,4 +92,4 @@ replace gvisor.dev/gvisor => gvisor.dev/gvisor v0.0.0-20250429202743-3a608a52255
 
 //replace github.com/v2fly/v2ray-core/v5 => ../../../v2ray-core
 
-replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.38.1-0.20250831211318-e163a04dce53
+replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.38.1-0.20250905152004-d98b144a5870
