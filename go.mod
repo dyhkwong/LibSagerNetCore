@@ -1,15 +1,15 @@
 module libcore
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/ccding/go-stun v0.1.5
 	github.com/golang/protobuf v1.5.4
 	github.com/quic-go/quic-go v0.54.0
 	github.com/sagernet/gomobile v0.1.8
-	github.com/v2fly/v2ray-core/v5 v5.38.0
+	github.com/v2fly/v2ray-core/v5 v5.39.0
 	github.com/wzshiming/socks5 v0.5.2
-	golang.org/x/sys v0.35.0
+	golang.org/x/sys v0.36.0
 	gvisor.dev/gvisor v0.0.0-20250503011706-39ed1f5ac29c
 )
 
@@ -24,9 +24,9 @@ require (
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
 	github.com/dgryski/go-rc2 v0.0.0-20150621095337-8a9021637152 // indirect
-	github.com/dyhkwong/hysteria/core/v2 v2.6.2-1 // indirect
-	github.com/dyhkwong/hysteria/extras/v2 v2.6.2-1 // indirect
-	github.com/dyhkwong/sing-juicity v0.0.1 // indirect
+	github.com/dyhkwong/hysteria/core/v2 v2.6.3-2 // indirect
+	github.com/dyhkwong/hysteria/extras/v2 v2.6.3-2 // indirect
+	github.com/dyhkwong/sing-juicity v0.0.3 // indirect
 	github.com/geeksbaek/seed v0.0.0-20230518075847-04d3af63848d // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/gofrs/uuid/v5 v5.3.2 // indirect
@@ -56,7 +56,7 @@ require (
 	github.com/refraction-networking/utls v1.8.0 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/sagernet/quic-go v0.52.0-beta.1 // indirect
-	github.com/sagernet/sing v0.7.7 // indirect
+	github.com/sagernet/sing v0.7.10 // indirect
 	github.com/sagernet/sing-quic v0.5.1 // indirect
 	github.com/sagernet/sing-shadowsocks v0.2.9 // indirect
 	github.com/sagernet/sing-shadowsocks2 v0.2.2 // indirect
@@ -71,19 +71,19 @@ require (
 	github.com/xtls/reality v0.0.0-20250527000105-e679ef7bb130 // indirect
 	go.uber.org/mock v0.6.0 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
-	golang.org/x/crypto v0.41.0 // indirect
+	golang.org/x/crypto v0.42.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/mod v0.27.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/net v0.44.0 // indirect
+	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/text v0.29.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
-	google.golang.org/grpc v1.75.0 // indirect
-	google.golang.org/protobuf v1.36.8 // indirect
+	google.golang.org/grpc v1.75.1 // indirect
+	google.golang.org/protobuf v1.36.9 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
 
@@ -92,4 +92,4 @@ replace gvisor.dev/gvisor => gvisor.dev/gvisor v0.0.0-20250429202743-3a608a52255
 
 //replace github.com/v2fly/v2ray-core/v5 => ../../../v2ray-core
 
-replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.38.1-0.20250905152004-d98b144a5870
+replace github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.39.1-0.20250913234846-83669ae7e80e
