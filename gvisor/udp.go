@@ -23,6 +23,7 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/v2fly/v2ray-core/v5/common/buf"
 	v2rayNet "github.com/v2fly/v2ray-core/v5/common/net"
 	"gvisor.dev/gvisor/pkg/buffer"
 	"gvisor.dev/gvisor/pkg/tcpip"
@@ -68,12 +69,12 @@ func gUdpHandler(s *stack.Stack, handler tun.Handler) {
 			IP:   dst.Address.IP(),
 			Port: int(dst.Port),
 		}
-		go handler.NewPacket(src, dst, data, func(bytes []byte, addr *net.UDPAddr) (int, error) {
+		go handler.NewPacket(src, dst, buf.FromBytes(data), func(bytes []byte, addr *net.UDPAddr) (int, error) {
 			if addr == nil {
 				addr = destUdpAddr
 			}
 			return packet.WriteBack(bytes, addr)
-		})
+		}, nil)
 		return true
 	})
 }
