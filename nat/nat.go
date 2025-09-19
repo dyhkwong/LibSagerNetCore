@@ -71,7 +71,9 @@ func New(dev int32, mtu int32, handler tun.Handler, enableIPv6 bool) (*SystemTun
 
 func (t *SystemTun) dispatchLoop() {
 	cache := buf.NewWithSize(int32(t.mtu))
-	defer cache.Release()
+	defer func() {
+		cache.Release()
+	}()
 	data := cache.Extend(cache.Cap())
 
 	device := os.NewFile(uintptr(t.dev), "tun")
@@ -121,7 +123,7 @@ func (t *SystemTun) deliverPacket(cache *buf.Buffer, packet []byte) bool {
 			t.processIPv4UDP(cache, ipHdr, ipHdr.Payload())
 			return true
 		case header.ICMPv4ProtocolNumber:
-			return t.processICMPv4(ipHdr, ipHdr.Payload())
+			t.processICMPv4(ipHdr, ipHdr.Payload())
 		}
 	case header.IPv6Version:
 		pkt := stack.NewPacketBuffer(stack.PacketBufferOptions{
@@ -140,7 +142,7 @@ func (t *SystemTun) deliverPacket(cache *buf.Buffer, packet []byte) bool {
 			t.processIPv6UDP(cache, ipHdr, ipHdr.Payload())
 			return true
 		case header.ICMPv6ProtocolNumber:
-			return t.processICMPv6(ipHdr, ipHdr.Payload())
+			t.processICMPv6(ipHdr, ipHdr.Payload())
 		}
 	}
 	return false

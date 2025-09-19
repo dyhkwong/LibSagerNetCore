@@ -74,7 +74,7 @@ func gUdpHandler(s *stack.Stack, handler tun.Handler) {
 				addr = destUdpAddr
 			}
 			return packet.WriteBack(bytes, addr)
-		}, nil)
+		})
 		return true
 	})
 }

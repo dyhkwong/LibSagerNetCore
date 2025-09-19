@@ -30,5 +30,5 @@ type Tun interface {
 
 type Handler interface {
 	NewConnection(source net.Destination, destination net.Destination, conn net.Conn)
-	NewPacket(source net.Destination, destination net.Destination, data *buf.Buffer, writeBack func([]byte, *net.UDPAddr) (int, error), closer io.Closer)
+	NewPacket(source net.Destination, destination net.Destination, data *buf.Buffer, writeBack func([]byte, *net.UDPAddr) (int, error))
 }

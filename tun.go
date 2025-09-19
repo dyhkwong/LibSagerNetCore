@@ -314,7 +314,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 	t.connectionsLock.Unlock()
 }
 
-func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.Destination, data *buf.Buffer, writeBack func([]byte, *net.UDPAddr) (int, error), closer io.Closer) {
+func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.Destination, data *buf.Buffer, writeBack func([]byte, *net.UDPAddr) (int, error)) {
 	natKey := source.NetAddr()
 
 	sendTo := func() bool {
@@ -327,6 +327,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 			IP:   destination.Address.IP(),
 			Port: int(destination.Port),
 		})
+		data.Release()
 		if err != nil {
 			_ = conn.Close()
 		}
@@ -336,7 +337,6 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 	var cond *sync.Cond
 
 	if sendTo() {
-		comm.CloseIgnore(closer)
 		return
 	} else {
 		iCond, loaded := t.lockTable.LoadOrStore(natKey, sync.NewCond(&sync.Mutex{}))
@@ -346,8 +346,6 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 			cond.Wait()
 			sendTo()
 			cond.L.Unlock()
-
-			comm.CloseIgnore(closer)
 			return
 		}
 	}
@@ -483,7 +481,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		}
 	}
 	bytespool.Free(buffer)
-	comm.CloseIgnore(conn, closer)
+	comm.CloseIgnore(conn)
 	t.udpTable.Delete(natKey)
 
 	t.connectionsLock.Lock()
