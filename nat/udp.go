@@ -50,11 +50,7 @@ func (t *SystemTun) processIPv4UDP(ipHdr header.IPv4, hdr header.UDP) {
 	newHeader := make([]byte, ipHdrLength+header.UDPMinimumSize)
 	copy(newHeader, ipHdr[:ipHdrLength+header.UDPMinimumSize])
 
-	payload := hdr.Payload()
-	data := make([]byte, len(payload))
-	copy(data, payload)
-
-	go t.handler.NewPacket(source, destination, data, func(bytes []byte, addr *v2rayNet.UDPAddr) (int, error) {
+	go t.handler.NewPacket(source, destination, hdr.Payload(), func(bytes []byte, addr *v2rayNet.UDPAddr) (int, error) {
 		var newSourceAddress tcpip.Address
 		var newSourcePort uint16
 
@@ -118,11 +114,7 @@ func (t *SystemTun) processIPv6UDP(ipHdr header.IPv6, hdr header.UDP) {
 	newHeader := make([]byte, ipHdrLength+header.UDPMinimumSize)
 	copy(newHeader, ipHdr[:ipHdrLength+header.UDPMinimumSize])
 
-	payload := hdr.Payload()
-	data := make([]byte, len(payload))
-	copy(data, payload)
-
-	go t.handler.NewPacket(source, destination, data, func(bytes []byte, addr *v2rayNet.UDPAddr) (int, error) {
+	go t.handler.NewPacket(source, destination, hdr.Payload(), func(bytes []byte, addr *v2rayNet.UDPAddr) (int, error) {
 		var newSourceAddress tcpip.Address
 		var newSourcePort uint16
 
