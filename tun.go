@@ -29,6 +29,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/v2fly/v2ray-core/v5/app/proxyman/inbound"
@@ -218,7 +219,13 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 	uidDumper, _ := inbound.GetUidDumper()
 
 	if uidDumper != nil && (t.dumpUID || t.trafficStats) {
-		u, err := inbound.DumpUid(source, destination)
+		var ipProto int32
+		if destination.Network == v2rayNet.Network_TCP {
+			ipProto = syscall.IPPROTO_TCP
+		} else {
+			ipProto = syscall.IPPROTO_UDP
+		}
+		u, err := uidDumper.DumpUid(ipProto, source.Address.IP().String(), int32(source.Port), destination.Address.IP().String(), int32(destination.Port))
 		if err == nil {
 			uid = uint16(u)
 			self = int(uid) == os.Getuid()
@@ -373,7 +380,13 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 	uidDumper, _ := inbound.GetUidDumper()
 
 	if uidDumper != nil && (t.dumpUID || t.trafficStats) {
-		u, err := inbound.DumpUid(source, destination)
+		var ipProto int32
+		if destination.Network == v2rayNet.Network_TCP {
+			ipProto = syscall.IPPROTO_TCP
+		} else {
+			ipProto = syscall.IPPROTO_UDP
+		}
+		u, err := uidDumper.DumpUid(ipProto, source.Address.IP().String(), int32(source.Port), destination.Address.IP().String(), int32(destination.Port))
 		if err == nil {
 			uid = uint16(u)
 			self = int(uid) == os.Getuid()

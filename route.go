@@ -19,22 +19,39 @@ package libcore
 
 import (
 	"github.com/v2fly/v2ray-core/v5/app/proxyman/inbound"
+	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
 type UidDumper inbound.UidDumper
 
 func SetUidDumper(uidDumper UidDumper, useProcfs bool) {
-	inbound.SetUidDumper(uidDumper, useProcfs)
-}
-
-func SetNetworkType(newNetworkType string) {
-	if inbound.GetNetworkType() != newNetworkType {
-		inbound.SetNetworkType(newNetworkType)
+	if useProcfs {
+		inbound.SetUidDumper(&legacyUidDumper{uidDumper: uidDumper})
+	} else {
+		inbound.SetUidDumper(uidDumper)
 	}
 }
 
-func SetSSID(newSSID string) {
-	if inbound.GetSSID() != newSSID {
-		inbound.SetSSID(newSSID)
+type legacyUidDumper struct {
+	uidDumper UidDumper
+}
+
+func (d *legacyUidDumper) DumpUid(ipProto int32, srcIP string, srcPort int32, _ string, _ int32) (int32, error) {
+	return querySocketUidFromProcFs(ipProto, net.ParseIP(srcIP), uint16(srcPort)), nil
+}
+
+func (d *legacyUidDumper) GetPackageName(uid int32) (string, error) {
+	return d.uidDumper.GetPackageName(uid)
+}
+
+func SetNetworkType(networkType string) {
+	if inbound.GetNetworkType() != networkType {
+		inbound.SetNetworkType(networkType)
+	}
+}
+
+func SetSSID(ssid string) {
+	if inbound.GetSSID() != ssid {
+		inbound.SetSSID(ssid)
 	}
 }
