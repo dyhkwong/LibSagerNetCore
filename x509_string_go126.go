@@ -1,5 +1,7 @@
+//go:build go1.26
+
 /*
-Copyright (C) 2021 by nekohasekai <contact-sagernet@sekai.icu>
+Copyright (C) 2026  dyhkwong
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,36 +17,16 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package comm
+package libsagernetcore
 
 import (
-	"io"
-
-	"github.com/v2fly/v2ray-core/v5/common"
+	"crypto/x509"
 )
 
-type closerWrapper struct {
-	closer func()
+func keyUsageToString(i x509.KeyUsage) string {
+	return i.String()
 }
 
-func (c closerWrapper) Close() error {
-	c.closer()
-	return nil
-}
-
-func Closer(closer func()) io.Closer {
-	return closerWrapper{closer}
-}
-
-func CloseIgnore(closer ...interface{}) {
-	for _, c := range closer {
-		if c == nil {
-			continue
-		}
-		if ia, ok := c.(common.Interruptible); ok {
-			ia.Interrupt()
-		} else if ca, ok := c.(common.Closable); ok {
-			_ = ca.Close()
-		}
-	}
+func extKeyUsageToString(i x509.ExtKeyUsage) string {
+	return i.String()
 }

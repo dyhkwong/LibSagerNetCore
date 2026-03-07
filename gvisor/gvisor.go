@@ -19,11 +19,14 @@ package gvisor
 
 import (
 	"io"
+	"math"
 	"os"
+	"time"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/header"
+	"gvisor.dev/gvisor/pkg/tcpip/link/fdbased"
 	"gvisor.dev/gvisor/pkg/tcpip/link/sniffer"
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv4"
 	"gvisor.dev/gvisor/pkg/tcpip/network/ipv6"
@@ -31,7 +34,8 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/transport/icmp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
-	"libcore/tun"
+
+	"github.com/dyhkwong/libsagernetcore/tun"
 )
 
 //go:generate go run ../errorgen
@@ -39,30 +43,44 @@ import (
 var _ tun.Tun = (*GVisor)(nil)
 
 type GVisor struct {
-	Endpoint stack.LinkEndpoint
-	PcapFile *os.File
-	Stack    *stack.Stack
+	endpoint stack.LinkEndpoint
+	stack    *stack.Stack
+	pcapFile *os.File
 }
 
 func (t *GVisor) Close() error {
-	t.Stack.Close()
-	if t.PcapFile != nil {
-		_ = t.PcapFile.Close()
+	t.endpoint.Attach(nil)
+	t.stack.Close()
+	for _, endpoint := range t.stack.CleanupEndpoints() {
+		endpoint.Abort()
+	}
+	if t.pcapFile != nil {
+		go func() {
+			time.Sleep(time.Second)
+			_ = t.pcapFile.Close()
+		}()
 	}
 	return nil
 }
 
 const DefaultNIC tcpip.NICID = 0x01
 
-func New(dev int32, mtu int32, handler tun.Handler, nicId tcpip.NICID, pcap bool, pcapFile *os.File, snapLen uint32, enableIPv6 bool) (*GVisor, error) {
+func New(dev int32, mtu int32, handler tun.Handler, pcapFile *os.File, enableIPv6, discardICMP bool, discardIPv6 func() bool) (*GVisor, error) {
 	var endpoint stack.LinkEndpoint
-	endpoint, _ = newRwEndpoint(dev, mtu)
-	if pcap {
-		pcapEndpoint, err := sniffer.NewWithWriter(endpoint, &pcapFileWrapper{pcapFile}, snapLen)
+	var err error
+	endpoint, err = fdbased.New(&fdbased.Options{
+		FDs:               []int{int(dev)},
+		MTU:               uint32(mtu),
+		RXChecksumOffload: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if pcapFile != nil {
+		endpoint, err = sniffer.NewWithWriter(endpoint, &pcapFileWrapper{pcapFile}, math.MaxUint32)
 		if err != nil {
 			return nil, err
 		}
-		endpoint = pcapEndpoint
 	}
 	var o stack.Options
 	if enableIPv6 {
@@ -94,11 +112,11 @@ func New(dev int32, mtu int32, handler tun.Handler, nicId tcpip.NICID, pcap bool
 	s.SetRouteTable([]tcpip.Route{
 		{
 			Destination: header.IPv4EmptySubnet,
-			NIC:         nicId,
+			NIC:         DefaultNIC,
 		},
 		{
 			Destination: header.IPv6EmptySubnet,
-			NIC:         nicId,
+			NIC:         DefaultNIC,
 		},
 	})
 
@@ -147,11 +165,29 @@ func New(dev int32, mtu int32, handler tun.Handler, nicId tcpip.NICID, pcap bool
 		}
 		return true
 	})*/
-	gMust(s.CreateNIC(nicId, endpoint))
-	gMust(s.SetSpoofing(nicId, true))
-	gMust(s.SetPromiscuousMode(nicId, true))
 
-	return &GVisor{endpoint, pcapFile, s}, nil
+	if discardIPv6 != nil || discardICMP {
+		endpoint = &linkEndpointWithDiscard{
+			LinkEndpoint: endpoint,
+			discardIPv6:  discardIPv6,
+			discardICMP:  discardICMP,
+		}
+	}
+
+	if tcpipErr := s.CreateNIC(DefaultNIC, endpoint); tcpipErr != nil {
+		return nil, newError(tcpipErr)
+	}
+	if tcpipErr := s.SetSpoofing(DefaultNIC, true); tcpipErr != nil {
+		return nil, newError(tcpipErr)
+	}
+	if tcpipErr := s.SetPromiscuousMode(DefaultNIC, true); tcpipErr != nil {
+		return nil, newError(tcpipErr)
+	}
+	return &GVisor{
+		endpoint: endpoint,
+		stack:    s,
+		pcapFile: pcapFile,
+	}, nil
 }
 
 type pcapFileWrapper struct {
@@ -159,19 +195,5 @@ type pcapFileWrapper struct {
 }
 
 func (w *pcapFileWrapper) Write(p []byte) (n int, err error) {
-	n, err = w.Writer.Write(p)
-	if err != nil {
-		newError("write pcap file failed").Base(err).AtDebug().WriteToLog()
-	}
-	return n, err
-}
-
-func gMust(err tcpip.Error) {
-	if err != nil {
-		newError(err).AtError().WriteToLog()
-	}
-}
-
-func tcpipErr(err tcpip.Error) error {
-	return newError(err.String())
+	return w.Writer.Write(p)
 }

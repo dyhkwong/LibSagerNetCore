@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2021 by nekohasekai <contact-sagernet@sekai.icu>
+Copyright (C) 2026  dyhkwong
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -18,160 +18,63 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package gvisor
 
 import (
-	"sync"
-
-	"golang.org/x/sys/unix"
-	"gvisor.dev/gvisor/pkg/buffer"
-	"gvisor.dev/gvisor/pkg/rawfile"
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/header"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 )
 
-var _ stack.InjectableLinkEndpoint = (*rwEndpoint)(nil)
+var (
+	_ stack.LinkEndpoint      = (*linkEndpointWithDiscard)(nil)
+	_ stack.NetworkDispatcher = (*linkEndpointWithDiscard)(nil)
+)
 
-// rwEndpoint implements the interface of stack.LinkEndpoint from io.ReadWriter.
-type rwEndpoint struct {
-	fd int
-
-	// mtu (maximum transmission unit) is the maximum size of a packet.
-	mtu uint32
-	wg  sync.WaitGroup
-
-	inbound    *readVDispatcher
-	dispatcher stack.NetworkDispatcher
-
-	mu sync.RWMutex `state:"nosave"`
+type linkEndpointWithDiscard struct {
+	stack.LinkEndpoint
+	dispatcher  stack.NetworkDispatcher
+	discardIPv6 func() bool
+	discardICMP bool // see https://github.com/google/gvisor/issues/8657
 }
 
-func newRwEndpoint(dev int32, mtu int32) (*rwEndpoint, error) {
-	e := &rwEndpoint{
-		fd:  int(dev),
-		mtu: uint32(mtu),
-	}
-	i, err := newReadVDispatcher(e.fd, e)
-	if err != nil {
-		return nil, err
-	}
-	e.inbound = i
-	return e, nil
+func (e *linkEndpointWithDiscard) Attach(dispatcher stack.NetworkDispatcher) {
+	e.dispatcher = dispatcher
+	e.LinkEndpoint.Attach(e)
 }
 
-func (e *rwEndpoint) InjectInbound(networkProtocol tcpip.NetworkProtocolNumber, pkt *stack.PacketBuffer) {
-	go e.dispatcher.DeliverNetworkPacket(networkProtocol, pkt)
-}
-
-func (e *rwEndpoint) InjectOutbound(dest tcpip.Address, packet *buffer.View) tcpip.Error {
-	if errno := rawfile.NonBlockingWrite(e.fd, packet.AsSlice()); errno != 0 {
-		return tcpip.TranslateErrno(errno)
-	}
-	return nil
-}
-
-// Attach launches the goroutine that reads packets from io.ReadWriter and
-// dispatches them via the provided dispatcher.
-func (e *rwEndpoint) Attach(dispatcher stack.NetworkDispatcher) {
-	if dispatcher == nil && e.dispatcher != nil {
-		e.inbound.stop()
-		e.Wait()
-		e.dispatcher = nil
+func (e *linkEndpointWithDiscard) DeliverNetworkPacket(protocol tcpip.NetworkProtocolNumber, pkt *stack.PacketBuffer) {
+	dispatcher := e.dispatcher
+	if dispatcher == nil {
 		return
 	}
-	if dispatcher != nil && e.dispatcher == nil {
-		e.dispatcher = dispatcher
-		e.wg.Add(1)
-		go func() {
-			e.dispatchLoop(e.inbound)
-			e.wg.Done()
-		}()
-	}
-}
-
-// IsAttached implements stack.LinkEndpoint.IsAttached.
-func (e *rwEndpoint) IsAttached() bool {
-	return e.dispatcher != nil
-}
-
-// dispatchLoop reads packets from the file descriptor in a loop and dispatches
-// them to the network stack.
-func (e *rwEndpoint) dispatchLoop(inboundDispatcher *readVDispatcher) tcpip.Error {
-	for {
-		cont, err := inboundDispatcher.dispatch()
-		if err != nil || !cont {
-			return err
+	packet := pkt.Data().AsRange().ToSlice()
+	switch protocol {
+	case header.IPv4ProtocolNumber:
+		if e.discardICMP {
+			hdr := header.IPv4(packet)
+			if hdr.TransportProtocol() == header.ICMPv4ProtocolNumber {
+				newError("discarded ICMP to ", hdr.DestinationAddress()).AtDebug().WriteToLog()
+				return
+			}
+		}
+	case header.IPv6ProtocolNumber:
+		discardIPv6 := false
+		if e.discardIPv6 != nil {
+			discardIPv6 = e.discardIPv6()
+		}
+		if e.discardICMP || discardIPv6 {
+			hdr := header.IPv6(packet)
+			if e.discardICMP && hdr.TransportProtocol() == header.ICMPv4ProtocolNumber {
+				newError("discarded ICMPv6 to ", hdr.DestinationAddress()).AtDebug().WriteToLog()
+				return
+			}
+			if discardIPv6 {
+				newError("discarded IPv6 to ", hdr.DestinationAddress()).AtDebug().WriteToLog()
+				return
+			}
 		}
 	}
+	dispatcher.DeliverNetworkPacket(protocol, pkt)
 }
 
-// WritePackets writes packets back into io.ReadWriter.
-func (e *rwEndpoint) WritePackets(pkts stack.PacketBufferList) (int, tcpip.Error) {
-	// Preallocate to avoid repeated reallocation as we append to batch.
-	// batchSz is 47 because when SWGSO is in use then a single 65KB TCP
-	// segment can get split into 46 segments of 1420 bytes and a single 216
-	// byte segment.
-	const batchSz = 47
-	batch := make([]unix.Iovec, 0, batchSz)
-	for _, pkt := range pkts.AsSlice() {
-		batch = rawfile.AppendIovecFromBytes(batch, pkt.ToView().AsSlice(), rawfile.MaxIovs)
-	}
-	if errno := rawfile.NonBlockingWriteIovec(e.fd, batch); errno != 0 {
-		return 0, tcpip.TranslateErrno(errno)
-	}
-	return pkts.Len(), nil
+func (e *linkEndpointWithDiscard) DeliverLinkPacket(protocol tcpip.NetworkProtocolNumber, pkt *stack.PacketBuffer) {
+	panic("unimplemented")
 }
-
-// MTU implements stack.LinkEndpoint.MTU.
-func (e *rwEndpoint) MTU() uint32 {
-	return e.mtu
-}
-
-// Capabilities implements stack.LinkEndpoint.Capabilities.
-func (e *rwEndpoint) Capabilities() stack.LinkEndpointCapabilities {
-	return stack.CapabilityNone
-}
-
-// MaxHeaderLength returns the maximum size of the link layer header. Given it
-// doesn't have a header, it just returns 0.
-func (*rwEndpoint) MaxHeaderLength() uint16 {
-	return 0
-}
-
-// LinkAddress returns the link address of this endpoint.
-func (*rwEndpoint) LinkAddress() tcpip.LinkAddress {
-	return ""
-}
-
-// ARPHardwareType implements stack.LinkEndpoint.ARPHardwareType.
-func (*rwEndpoint) ARPHardwareType() header.ARPHardwareType {
-	return header.ARPHardwareNone
-}
-
-// AddHeader implements stack.LinkEndpoint.AddHeader.
-func (e *rwEndpoint) AddHeader(*stack.PacketBuffer) {
-}
-
-// ParseHeader implements stack.LinkEndpoint.ParseHeader.
-func (*rwEndpoint) ParseHeader(*stack.PacketBuffer) bool {
-	return true
-}
-
-// SetLinkAddress implements stack.LinkEndpoint.SetLinkAddress.
-func (e *rwEndpoint) SetLinkAddress(_ tcpip.LinkAddress) {}
-
-// SetMTU implements stack.LinkEndpoint.SetMTU.
-func (e *rwEndpoint) SetMTU(mtu uint32) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	e.mtu = mtu
-}
-
-// SetOnCloseAction implements stack.LinkEndpoint.
-func (*rwEndpoint) SetOnCloseAction(func()) {}
-
-// Wait implements stack.LinkEndpoint.Wait.
-func (e *rwEndpoint) Wait() {
-	e.wg.Wait()
-}
-
-// Close implements stack.LinkEndpoint.Close.
-func (*rwEndpoint) Close() {}

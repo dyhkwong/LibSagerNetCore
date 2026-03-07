@@ -18,42 +18,45 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package nat
 
 import (
+	"net/netip"
 	"os"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"golang.org/x/sys/unix"
-	"gvisor.dev/gvisor/pkg/buffer"
 	"gvisor.dev/gvisor/pkg/rawfile"
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/header"
-	"gvisor.dev/gvisor/pkg/tcpip/header/parse"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
-	"libcore/tun"
+
+	"github.com/dyhkwong/libsagernetcore/tun"
 )
 
 //go:generate go run ../errorgen
 
 var _ tun.Tun = (*SystemTun)(nil)
 
-var (
-	vlanClient4 = tcpip.AddrFromSlice([]uint8{172, 19, 0, 1})
-	vlanClient6 = tcpip.AddrFromSlice([]uint8{0xfd, 0xfe, 0xdc, 0xba, 0x98, 0x76, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x1})
-)
-
 type SystemTun struct {
 	dev          int
 	mtu          int
 	handler      tun.Handler
+	addr4        netip.Addr
+	addr6        netip.Addr
 	enableIPv6   bool
+	discardIPv6  func() bool
+	discardICMP  bool
 	tcpForwarder *tcpForwarder
 }
 
-func New(dev int32, mtu int32, handler tun.Handler, enableIPv6 bool) (*SystemTun, error) {
+func New(dev int32, mtu int32, handler tun.Handler, addr4, addr6 netip.Addr, enableIPv6, discardICMP bool, discardIPv6 func() bool) (*SystemTun, error) {
 	t := &SystemTun{
-		dev:        int(dev),
-		mtu:        int(mtu),
-		handler:    handler,
-		enableIPv6: enableIPv6,
+		dev:         int(dev),
+		mtu:         int(mtu),
+		handler:     handler,
+		addr4:       addr4,
+		addr6:       addr6,
+		enableIPv6:  enableIPv6,
+		discardIPv6: discardIPv6,
+		discardICMP: discardICMP,
 	}
 	tcpServer, err := newTcpForwarder(t)
 	if err != nil {
@@ -123,25 +126,37 @@ func (t *SystemTun) deliverPacket(cache *buf.Buffer, packet []byte) bool {
 			t.processIPv4UDP(cache, ipHdr, ipHdr.Payload())
 			return true
 		case header.ICMPv4ProtocolNumber:
+			if t.discardICMP {
+				newError("discarded ICMP to ", ipHdr.DestinationAddress()).AtDebug().WriteToLog()
+				return false
+			}
 			t.processICMPv4(ipHdr, ipHdr.Payload())
 		}
 	case header.IPv6Version:
-		pkt := stack.NewPacketBuffer(stack.PacketBufferOptions{
-			Payload: buffer.MakeWithData(packet),
-		})
-		proto, _, _, _, ok := parse.IPv6(pkt)
-		pkt.DecRef()
-		if !ok {
-			return false
-		}
 		ipHdr := header.IPv6(packet)
-		switch proto {
+		discardIPv6 := false
+		if t.discardIPv6 != nil {
+			discardIPv6 = t.discardIPv6()
+		}
+		switch ipHdr.TransportProtocol() {
 		case header.TCPProtocolNumber:
+			if discardIPv6 {
+				newError("discarded IPv6 to ", ipHdr.DestinationAddress()).AtDebug().WriteToLog()
+				return false
+			}
 			t.tcpForwarder.processIPv6(ipHdr, ipHdr.Payload())
 		case header.UDPProtocolNumber:
+			if discardIPv6 {
+				newError("discarded IPv6 to ", ipHdr.DestinationAddress()).AtDebug().WriteToLog()
+				return true
+			}
 			t.processIPv6UDP(cache, ipHdr, ipHdr.Payload())
 			return true
 		case header.ICMPv6ProtocolNumber:
+			if discardIPv6 || t.discardICMP {
+				newError("discarded ICMPv6 to ", ipHdr.DestinationAddress()).AtDebug().WriteToLog()
+				return false
+			}
 			t.processICMPv6(ipHdr, ipHdr.Payload())
 		}
 	}
@@ -149,5 +164,6 @@ func (t *SystemTun) deliverPacket(cache *buf.Buffer, packet []byte) bool {
 }
 
 func (t *SystemTun) Close() error {
-	return t.tcpForwarder.Close()
+	t.tcpForwarder.Close()
+	return nil
 }

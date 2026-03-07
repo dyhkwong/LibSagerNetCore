@@ -18,14 +18,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package nat
 
 import (
+	"context"
+	"errors"
 	"net"
 	"time"
 
 	v2rayNet "github.com/v2fly/v2ray-core/v5/common/net"
+	"golang.org/x/sys/unix"
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/checksum"
 	"gvisor.dev/gvisor/pkg/tcpip/header"
-	"libcore/comm"
+
+	"github.com/dyhkwong/libsagernetcore/common"
 )
 
 type tcpForwarder struct {
@@ -34,41 +38,62 @@ type tcpForwarder struct {
 	port6     uint16
 	listener4 *net.TCPListener
 	listener6 *net.TCPListener
-	sessions  *comm.LruCache
+	sessions  *common.LruCache
 }
 
 func newTcpForwarder(tun *SystemTun) (*tcpForwarder, error) {
 	tcpForwarder := &tcpForwarder{
 		tun:      tun,
-		sessions: comm.NewLruCache(300, true),
+		sessions: common.NewLruCache(300, true),
 	}
-	address := &net.TCPAddr{}
-	address.IP = net.IP(vlanClient4.AsSlice())
-	listener, err := net.ListenTCP("tcp4", address)
+	listenerConfig := &net.ListenConfig{}
+	listenerConfig.SetMultipathTCP(false)
+	address := &net.TCPAddr{
+		IP: tun.addr4.AsSlice(),
+	}
+	var err error
+	var listener4 net.Listener
+	for i := 0; i < 3; i++ {
+		listener4, err = listenerConfig.Listen(context.Background(), "tcp4", address.String())
+		if err == nil || !errors.Is(err, unix.EADDRNOTAVAIL) {
+			break
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
 	if err != nil {
 		return nil, newError("failed to create tcp forwarder at ", address.IP).Base(err)
 	}
-	tcpForwarder.listener4 = listener
-	tcpForwarder.port4 = uint16(listener.Addr().(*net.TCPAddr).Port)
-	newError("tcp forwarder started at ", listener.Addr().(*net.TCPAddr)).AtDebug().WriteToLog()
+	tcpForwarder.listener4 = listener4.(*net.TCPListener)
+	tcpForwarder.port4 = uint16(listener4.Addr().(*net.TCPAddr).Port)
+	newError("tcp forwarder started at ", listener4.Addr().(*net.TCPAddr)).AtDebug().WriteToLog()
 	if tun.enableIPv6 {
-		address := &net.TCPAddr{}
-		address.IP = net.IP(vlanClient6.AsSlice())
-		listener, err := net.ListenTCP("tcp6", address)
+		address := &net.TCPAddr{
+			IP: tun.addr6.AsSlice(),
+		}
+		// IDK why IPv6 sometimes reports "bind: cannot assign requested address". IPv4 is not affected.
+		// See https://github.com/SagerNet/sing-tun/commit/07278fb4705b933b0471d77dc80d8d62f5704ccd.
+		var listener6 net.Listener
+		for i := 0; i < 3; i++ {
+			listener6, err = listenerConfig.Listen(context.Background(), "tcp6", address.String())
+			if err == nil || !errors.Is(err, unix.EADDRNOTAVAIL) {
+				break
+			}
+			time.Sleep(time.Millisecond * 100)
+		}
 		if err != nil {
 			return nil, newError("failed to create tcp forwarder at ", address.IP).Base(err)
 		}
-		tcpForwarder.listener6 = listener
-		tcpForwarder.port6 = uint16(listener.Addr().(*net.TCPAddr).Port)
-		newError("tcp forwarder started at ", listener.Addr().(*net.TCPAddr)).AtDebug().WriteToLog()
+		tcpForwarder.listener6 = listener6.(*net.TCPListener)
+		tcpForwarder.port6 = uint16(listener6.Addr().(*net.TCPAddr).Port)
+		newError("tcp forwarder started at ", listener6.Addr().(*net.TCPAddr)).AtDebug().WriteToLog()
 	}
 	return tcpForwarder, nil
 }
 
-func (t *tcpForwarder) dispatch(listener *net.TCPListener) (bool, error) {
+func (t *tcpForwarder) dispatch(listener *net.TCPListener) error {
 	conn, err := listener.AcceptTCP()
 	if err != nil {
-		return true, err
+		return err
 	}
 	addr := conn.RemoteAddr().(*net.TCPAddr)
 	key := peerKey{tcpip.AddrFromSlice(addr.IP), uint16(addr.Port)}
@@ -78,7 +103,8 @@ func (t *tcpForwarder) dispatch(listener *net.TCPListener) (bool, error) {
 		session = iSession.(*peerValue)
 	} else {
 		conn.Close()
-		return false, newError("dropped unknown tcp session with source port ", key.sourcePort, " to destination address ", key.destinationAddress)
+		newError("dropped unknown tcp session with source port ", key.sourcePort, " to destination address ", key.destinationAddress).AtWarning().WriteToLog()
+		return nil
 	}
 
 	source := v2rayNet.Destination{
@@ -98,18 +124,16 @@ func (t *tcpForwarder) dispatch(listener *net.TCPListener) (bool, error) {
 		t.sessions.Delete(key)
 	}()
 
-	return false, nil
+	return nil
 }
 
 func (t *tcpForwarder) dispatchLoop(listener *net.TCPListener) {
 	for {
-		stop, err := t.dispatch(listener)
-		if err != nil {
-			e := newError("dispatch tcp conn failed").Base(err)
-			e.WriteToLog()
-			if stop {
-				return
+		if err := t.dispatch(listener); err != nil {
+			if !errors.Is(err, net.ErrClosed) {
+				newError("dispatch tcp conn failed").Base(err).WriteToLog()
 			}
+			break
 		}
 	}
 }
@@ -123,7 +147,6 @@ func (t *tcpForwarder) processIPv4(ipHdr header.IPv4, tcpHdr header.TCP) {
 	var session *peerValue
 
 	if sourcePort != t.port4 {
-
 		key := peerKey{destinationAddress, sourcePort}
 		iSession, ok := t.sessions.Get(key)
 		if ok {
@@ -132,13 +155,10 @@ func (t *tcpForwarder) processIPv4(ipHdr header.IPv4, tcpHdr header.TCP) {
 			session = &peerValue{sourceAddress, destinationPort}
 			t.sessions.Set(key, session)
 		}
-
 		ipHdr.SetSourceAddress(destinationAddress)
-		ipHdr.SetDestinationAddress(vlanClient4)
+		ipHdr.SetDestinationAddress(tcpip.AddrFrom4(t.tun.addr4.As4()))
 		tcpHdr.SetDestinationPort(t.port4)
-
 	} else {
-
 		iSession, ok := t.sessions.Get(peerKey{destinationAddress, destinationPort})
 		if ok {
 			session = iSession.(*peerValue)
@@ -171,7 +191,6 @@ func (t *tcpForwarder) processIPv6(ipHdr header.IPv6, tcpHdr header.TCP) {
 	var session *peerValue
 
 	if sourcePort != t.port6 {
-
 		key := peerKey{destinationAddress, sourcePort}
 		iSession, ok := t.sessions.Get(key)
 		if ok {
@@ -182,9 +201,8 @@ func (t *tcpForwarder) processIPv6(ipHdr header.IPv6, tcpHdr header.TCP) {
 		}
 
 		ipHdr.SetSourceAddress(destinationAddress)
-		ipHdr.SetDestinationAddress(vlanClient6)
+		ipHdr.SetDestinationAddress(tcpip.AddrFrom16(t.tun.addr6.As16()))
 		tcpHdr.SetDestinationPort(t.port6)
-
 	} else {
 
 		iSession, ok := t.sessions.Get(peerKey{destinationAddress, destinationPort})

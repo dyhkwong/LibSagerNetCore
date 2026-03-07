@@ -15,21 +15,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package libcore
+package libsagernetcore
 
 import (
 	"io"
 	"os"
 	"path/filepath"
-	"sync"
 
-	"github.com/sagernet/gomobile/asset"
 	"github.com/v2fly/v2ray-core/v5/common/platform/filesystem"
-)
-
-const (
-	mozillaIncludedPem = "mozilla_included.pem"
-	androidIncludedPem = "android_included.pem"
+	"golang.org/x/mobile/asset"
 )
 
 var (
@@ -38,93 +32,28 @@ var (
 	externalAssetsPath string
 )
 
-var (
-	assetsAccess sync.Mutex
-)
-
-func InitializeV2Ray(internalAssets string, externalAssets string, prefix string, caProvider int32) error {
+func InitializeV2Ray(internalAssets string, externalAssets string, prefix string) {
 	assetsPrefix = prefix
 	internalAssetsPath = internalAssets
 	externalAssetsPath = externalAssets
 
-	filesystem.NewFileSeeker = func(path string) (io.ReadSeekCloser, error) {
+	fileSeeker := func(path string) (io.ReadSeekCloser, error) {
 		_, fileName := filepath.Split(path)
-
-		paths := []string{
-			externalAssetsPath + fileName,
-			internalAssetsPath + fileName,
+		if _, err := os.Stat(externalAssetsPath + fileName); err == nil {
+			return os.Open(externalAssetsPath + fileName)
 		}
-
-		var err error
-
-		for _, path = range paths {
-			_, err = os.Stat(path)
-			if err == nil {
-				return os.Open(path)
-			}
+		if _, err := os.Stat(internalAssetsPath + fileName); err == nil {
+			return os.Open(internalAssetsPath + fileName)
 		}
-
-		file, err := asset.Open(assetsPrefix + fileName)
-		if err == nil {
+		if file, err := asset.Open(assetsPrefix + fileName); err == nil {
 			return file, nil
 		}
-
-		for _, path = range paths {
-			_, err = os.Stat(path)
-			if err == nil {
-				return os.Open(path)
-			}
-			if !os.IsNotExist(err) {
-				return nil, err
-			}
-		}
-
-		return nil, err
+		return nil, newError("asset ", fileName, " not found")
 	}
+
+	filesystem.NewFileSeeker = fileSeeker
 
 	filesystem.NewFileReader = func(path string) (io.ReadCloser, error) {
-		return filesystem.NewFileSeeker(path)
+		return fileSeeker(path)
 	}
-
-	UpdateSystemRoots(caProvider)
-
-	return nil
-}
-
-func extractMozillaCAPem() error {
-	path := internalAssetsPath + mozillaIncludedPem
-	sumPath := path + ".sha256sum"
-	sumInternal, err := asset.Open(mozillaIncludedPem + ".sha256sum")
-	if err != nil {
-		return newError("open pem version in assets").Base(err)
-	}
-	defer sumInternal.Close()
-	sumBytes, err := io.ReadAll(sumInternal)
-	if err != nil {
-		return newError("read internal version").Base(err)
-	}
-	_, pemSha256sumNotExists := os.Stat(sumPath)
-	if pemSha256sumNotExists == nil {
-		sumExternal, err := os.ReadFile(sumPath)
-		if err == nil {
-			if string(sumBytes) == string(sumExternal) {
-				return nil
-			}
-		}
-	}
-	pemFile, err := os.Create(path)
-	if err != nil {
-		return newError("create pem file").Base(err)
-	}
-	defer pemFile.Close()
-	pem, err := asset.Open(mozillaIncludedPem)
-	if err != nil {
-		return newError("open pem in assets").Base(err)
-	}
-	defer pem.Close()
-	_, err = io.Copy(pemFile, pem)
-	if err != nil {
-		return newError("write pem file")
-	}
-	return os.WriteFile(sumPath, sumBytes, 0o644)
 }

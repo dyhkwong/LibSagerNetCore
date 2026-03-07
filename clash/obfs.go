@@ -23,7 +23,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
 	"github.com/v2fly/v2ray-core/v5/proxy/sip003/self"
 
-	"libcore/clash/transport/simple-obfs"
+	"github.com/dyhkwong/libsagernetcore/clash/transport/simple-obfs"
 )
 
 var (
@@ -61,6 +61,8 @@ func (p *obfsLocalPlugin) InitStreamPlugin(remotePort string, pluginOpts string)
 
 	if s, ok := options.Get("obfs-host"); ok {
 		p.host = s
+	} else {
+		p.host = "cloudfront.net"
 	}
 
 	switch mode {

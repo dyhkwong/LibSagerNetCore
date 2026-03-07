@@ -31,7 +31,8 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/header"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
-	"libcore/tun"
+
+	"github.com/dyhkwong/libsagernetcore/tun"
 )
 
 func gUdpHandler(s *stack.Stack, handler tun.Handler) {

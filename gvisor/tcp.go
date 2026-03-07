@@ -29,7 +29,8 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
 	"gvisor.dev/gvisor/pkg/waiter"
-	"libcore/tun"
+
+	"github.com/dyhkwong/libsagernetcore/tun"
 )
 
 func gTcpHandler(s *stack.Stack, handler tun.Handler) {
@@ -38,7 +39,7 @@ func gTcpHandler(s *stack.Stack, handler tun.Handler) {
 		waitQueue := new(waiter.Queue)
 		endpoint, errT := request.CreateEndpoint(waitQueue)
 		if errT != nil {
-			newError("failed to create TCP connection").Base(tcpipErr(errT)).WriteToLog()
+			newError("failed to create TCP connection").Base(newError(errT)).WriteToLog()
 			// prevent potential half-open TCP connection leak.
 			request.Complete(true)
 			return

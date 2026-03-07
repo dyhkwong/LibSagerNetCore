@@ -15,68 +15,119 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package libcore
+package libsagernetcore
 
 import (
+	"bytes"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"os"
+	"syscall"
 	_ "unsafe"
+
+	"golang.org/x/mobile/asset"
 )
 
 const (
 	caProviderMozilla = iota
 	caProviderSystem
 	caProviderSystemAndUser // for https://github.com/golang/go/issues/71258
+	caProviderCustom
+)
+
+const (
+	mozillaIncludedPem = "mozilla_included.pem"
+	androidIncludedPem = "android_included.pem"
+	customPem          = "root_store.certs"
 )
 
 //go:linkname systemRoots crypto/x509.systemRoots
 var systemRoots *x509.CertPool
 
+func UpdateSystemRoots(caProvider int32) (err error) {
+	switch caProvider {
+	case caProviderSystem:
+	case caProviderMozilla:
+		err = setupMozillaCAProvider()
+	case caProviderCustom:
+		err = setupCustomCAProvider()
+	case caProviderSystemAndUser:
+		err = setupSystemAndUserCAProvider()
+	default:
+		panic("unknown root store provider")
+	}
+	if err != nil {
+		x509.SystemCertPool() // crypto/x509 once.Do(initSystemRoots)
+		systemRoots = x509.NewCertPool()
+		return err
+	}
+	return nil
+}
+
+func extractOrReadMozillaCAPem() ([]byte, error) {
+	pemInternal, err := asset.Open(mozillaIncludedPem)
+	if err != nil {
+		pemInternal.Close()
+		return nil, err
+	}
+	pemBytes, err := io.ReadAll(pemInternal)
+	if err != nil {
+		pemInternal.Close()
+		return nil, err
+	}
+	pemInternal.Close()
+	pemFile, err := os.OpenFile(internalAssetsPath+mozillaIncludedPem, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return nil, err
+	}
+	defer pemFile.Close()
+	if err := syscall.Flock(int(pemFile.Fd()), syscall.LOCK_EX); err != nil {
+		return nil, err
+	}
+	defer syscall.Flock(int(pemFile.Fd()), syscall.LOCK_UN)
+	if b, err := io.ReadAll(pemFile); err == nil && bytes.Equal(b, pemBytes) {
+		return pemBytes, nil
+	}
+	if err := pemFile.Truncate(0); err != nil {
+		return nil, err
+	}
+	if _, err := pemFile.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+	if _, err := pemFile.Write(pemBytes); err != nil {
+		return nil, err
+	}
+	return pemBytes, nil
+}
+
 func setupMozillaCAProvider() error {
-	if err := extractMozillaCAPem(); err != nil {
-		return err
-	}
-	pemPath := externalAssetsPath + mozillaIncludedPem
-	pemFile, err := os.ReadFile(pemPath)
-	if err != nil {
-		pemPath = internalAssetsPath + mozillaIncludedPem
-		pemFile, err = os.ReadFile(pemPath)
-	}
+	pemBytes, err := extractOrReadMozillaCAPem()
 	if err != nil {
 		return err
 	}
-	newError("load ", mozillaIncludedPem, " from ", pemPath).AtInfo().WriteToLog()
-	x509.SystemCertPool()
 	roots := x509.NewCertPool()
-	if !roots.AppendCertsFromPEM(pemFile) {
+	if !roots.AppendCertsFromPEM(pemBytes) {
 		return newError("failed to append certificates from pem")
 	}
+	x509.SystemCertPool()
 	systemRoots = roots
 	return nil
 }
 
-func UpdateSystemRoots(caProvider int32) {
-	assetsAccess.Lock()
-	defer assetsAccess.Unlock()
-	switch caProvider {
-	case caProviderSystem:
-		systemRoots, _ = x509.SystemCertPool()
-		newError("using system CA provider").AtInfo().WriteToLog()
-	case caProviderMozilla:
-		if err := setupMozillaCAProvider(); err != nil {
-			newError(err).AtError().WriteToLog()
-			return
-		}
-		newError("using Mozilla CA provider").AtInfo().WriteToLog()
-	case caProviderSystemAndUser:
-		if err := setupSystemAndUserCAProvider(); err != nil {
-			newError(err).AtError().WriteToLog()
-			return
-		}
-		newError("using system and user CA provider").AtInfo().WriteToLog()
+func setupCustomCAProvider() error {
+	pemBytes, err := os.ReadFile(externalAssetsPath + customPem)
+	if err != nil {
+		return err
 	}
+	roots := x509.NewCertPool()
+	if !roots.AppendCertsFromPEM(pemBytes) {
+		return newError("failed to append certificates from pem")
+	}
+	x509.SystemCertPool()
+	systemRoots = roots
+	return nil
 }
 
 func setupSystemAndUserCAProvider() error {
@@ -114,18 +165,20 @@ func setupSystemAndUserCAProvider() error {
 		return err
 	}
 	defer pemFile.Close()
+	if err := syscall.Flock(int(pemFile.Fd()), syscall.LOCK_EX); err != nil {
+		return err
+	}
+	defer syscall.Flock(int(pemFile.Fd()), syscall.LOCK_UN)
 
-	x509.SystemCertPool()
 	roots := x509.NewCertPool()
 
 	for _, path := range paths {
 		bytes, err := os.ReadFile(path)
 		if err != nil {
-			newError("failed to read certificate ", path).Base(err).AtError().WriteToLog()
-			continue
+			return err
 		}
-		certs, parseErr := x509.ParseCertificates(bytes)
-		if parseErr != nil {
+		certs, err := x509.ParseCertificates(bytes)
+		if err != nil {
 			var cert *x509.Certificate
 			for len(bytes) > 0 {
 				var block *pem.Block
@@ -136,14 +189,14 @@ func setupSystemAndUserCAProvider() error {
 				if block.Type != "CERTIFICATE" || len(block.Headers) != 0 {
 					continue
 				}
-				if cert, parseErr = x509.ParseCertificate(block.Bytes); parseErr == nil {
+				cert, err = x509.ParseCertificate(block.Bytes)
+				if err == nil {
 					certs = append(certs, cert)
 				}
 			}
 		}
-		if parseErr != nil {
-			newError("failed to parse certificate ", path).AtError().WriteToLog()
-			continue
+		if err != nil {
+			return newError("failed to parse certificate ", path).Base(err)
 		}
 		for _, cert := range certs {
 			block := &pem.Block{
@@ -151,12 +204,13 @@ func setupSystemAndUserCAProvider() error {
 				Bytes: cert.Raw,
 			}
 			if err := pem.Encode(pemFile, block); err != nil {
-				newError("failed to encode certificate ", path).AtError().WriteToLog()
-				continue
+				return err
 			}
 			roots.AddCert(cert)
 		}
 	}
+
+	x509.SystemCertPool()
 	systemRoots = roots
 	return nil
 }

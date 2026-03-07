@@ -15,10 +15,13 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package libcore
+package libsagernetcore
 
 import (
+	"sync/atomic"
+
 	"github.com/v2fly/v2ray-core/v5/app/proxyman/inbound"
+	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common/net"
 )
 
@@ -54,4 +57,14 @@ func SetSSID(ssid string) {
 	if inbound.GetSSID() != ssid {
 		inbound.SetSSID(ssid)
 	}
+}
+
+func InterfaceUpdate() {
+	outbound.InterfaceUpdate()
+}
+
+var discardIPv6 atomic.Bool
+
+func SetDiscardIPv6(shouldDiscardIPv6 bool) {
+	discardIPv6.Store(shouldDiscardIPv6)
 }

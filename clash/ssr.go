@@ -26,8 +26,8 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/net/cnc"
 	"github.com/v2fly/v2ray-core/v5/proxy/sip003"
 
-	"libcore/clash/transport/ssr/obfs"
-	"libcore/clash/transport/ssr/protocol"
+	"github.com/dyhkwong/libsagernetcore/clash/transport/ssr/obfs"
+	"github.com/dyhkwong/libsagernetcore/clash/transport/ssr/protocol"
 )
 
 var (

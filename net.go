@@ -18,26 +18,34 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package libsagernetcore
 
 import (
-	"net/http"
-	_ "net/http/pprof"
-
-	"github.com/dyhkwong/libsagernetcore/common"
+	"net/netip"
 )
 
-type DebugInstance struct {
-	server *http.Server
+func IsIP(input string) bool {
+	_, err := netip.ParseAddr(input)
+	return err == nil
 }
 
-func NewDebugInstance(addr string) *DebugInstance {
-	s := &http.Server{
-		Addr: addr,
+func IsIPv4(input string) bool {
+	ip, err := netip.ParseAddr(input)
+	if err != nil {
+		return false
 	}
-	go func() {
-		_ = s.ListenAndServe()
-	}()
-	return &DebugInstance{s}
+	return ip.Is4()
 }
 
-func (d *DebugInstance) Close() {
-	common.CloseIgnore(d.server)
+func IsIPv6(input string) bool {
+	ip, err := netip.ParseAddr(input)
+	if err != nil {
+		return false
+	}
+	return ip.Is6()
+}
+
+func IsLoopbackIP(input string) bool {
+	ip, err := netip.ParseAddr(input)
+	if err != nil {
+		return false
+	}
+	return ip.IsLoopback()
 }

@@ -15,14 +15,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package libcore
+package libsagernetcore
 
 import (
 	"container/list"
 	"context"
 	"io"
-	"math"
 	"net"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -33,7 +33,6 @@ import (
 	"time"
 
 	"github.com/v2fly/v2ray-core/v5/app/proxyman/inbound"
-	"github.com/v2fly/v2ray-core/v5/common"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/bytespool"
 	"github.com/v2fly/v2ray-core/v5/common/log"
@@ -42,10 +41,11 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/task"
 	"github.com/v2fly/v2ray-core/v5/features/dns"
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
-	"libcore/comm"
-	"libcore/gvisor"
-	"libcore/nat"
-	"libcore/tun"
+
+	"github.com/dyhkwong/libsagernetcore/common"
+	"github.com/dyhkwong/libsagernetcore/gvisor"
+	"github.com/dyhkwong/libsagernetcore/nat"
+	"github.com/dyhkwong/libsagernetcore/tun"
 )
 
 var _ tun.Handler = (*Tun2ray)(nil)
@@ -53,7 +53,10 @@ var _ tun.Handler = (*Tun2ray)(nil)
 type Tun2ray struct {
 	dev                 tun.Tun
 	mtu                 int32
-	router              string
+	addr4               netip.Addr
+	addr6               netip.Addr
+	dns4                netip.Addr
+	dns6                netip.Addr
 	v2ray               *V2RayInstance
 	fakedns             bool
 	sniffing            bool
@@ -70,7 +73,7 @@ type Tun2ray struct {
 	connectionsLock sync.Mutex
 	connections     list.List
 
-	protectCloser io.Closer
+	protectServer io.Closer
 }
 
 type TunConfig struct {
@@ -79,8 +82,10 @@ type TunConfig struct {
 	Protector           Protector
 	MTU                 int32
 	V2Ray               *V2RayInstance
-	Gateway4            string
-	Gateway6            string
+	Addr4               string
+	Addr6               string
+	Dns4                string
+	Dns6                string
 	EnableIPv6          bool
 	Implementation      int32
 	FakeDNS             bool
@@ -91,12 +96,21 @@ type TunConfig struct {
 	TrafficStats        bool
 	PCap                bool
 	ProtectPath         string
+	DiscardICMP         bool
+
+	DiscardIPv6BasedOnNetwork bool
 }
 
 func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
+	if config.V2Ray.localResolver == nil {
+		panic("localResolver not set")
+	}
+
 	t := &Tun2ray{
 		mtu:                 config.MTU,
-		router:              config.Gateway4,
+		addr4:               netip.MustParseAddr(config.Addr4),
+		addr6:               netip.MustParseAddr(config.Addr6),
+		dns4:                netip.MustParseAddr(config.Dns4),
 		v2ray:               config.V2Ray,
 		sniffing:            config.Sniffing,
 		overrideDestination: config.OverrideDestination,
@@ -104,14 +118,24 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 		dumpUID:             config.DumpUID,
 		trafficStats:        config.TrafficStats,
 	}
+	if len(config.Dns6) > 0 {
+		t.dns6 = netip.MustParseAddr(config.Dns6)
+	}
+
+	discardIPv6Func := (func() bool)(nil)
+	if config.DiscardIPv6BasedOnNetwork {
+		discardIPv6Func = func() bool {
+			return discardIPv6.Load()
+		}
+	}
 
 	var err error
 	switch config.Implementation {
-	case comm.TunImplementationGVisor:
+	case common.TunImplementationGVisor:
 		var pcapFile *os.File
 		if config.PCap {
-			path := time.Now().UTC().String()
-			path = externalAssetsPath + "/pcap/" + path + ".pcap"
+			timestamp := time.Now().Unix()
+			path := externalAssetsPath + "pcap/" + strconv.FormatInt(timestamp, 10) + ".pcap"
 			err = os.MkdirAll(filepath.Dir(path), 0o755)
 			if err != nil {
 				return nil, newError("unable to create pcap dir").Base(err)
@@ -122,9 +146,9 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 			}
 		}
 
-		t.dev, err = gvisor.New(config.FileDescriptor, config.MTU, t, gvisor.DefaultNIC, config.PCap, pcapFile, math.MaxUint32, config.EnableIPv6)
-	case comm.TunImplementationSystem:
-		t.dev, err = nat.New(config.FileDescriptor, config.MTU, t, config.EnableIPv6)
+		t.dev, err = gvisor.New(config.FileDescriptor, config.MTU, t, pcapFile, config.EnableIPv6, config.DiscardICMP, discardIPv6Func)
+	case common.TunImplementationSystem:
+		t.dev, err = nat.New(config.FileDescriptor, config.MTU, t, t.addr4, t.addr6, config.EnableIPv6, config.DiscardICMP, discardIPv6Func)
 	}
 
 	if err != nil {
@@ -136,11 +160,11 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 	}
 
 	if len(config.ProtectPath) > 0 {
-		t.protectCloser = ServerProtect(config.ProtectPath, config.Protector)
+		t.protectServer = protectServer(config.ProtectPath, config.Protector)
 	}
 
 	lookupFunc := func(network, host string) ([]net.IP, error) {
-		response, err := config.V2Ray.LocalResolver.LookupIP(network, host)
+		response, err := config.V2Ray.localResolver.LookupIP(network, host)
 		if err != nil {
 			errStr := err.Error()
 			if strings.HasPrefix(errStr, "rcode") {
@@ -152,9 +176,7 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 		if response == "" {
 			return nil, dns.ErrEmptyResponse
 		}
-		addrs := Filter(strings.Split(response, ","), func(it string) bool {
-			return len(strings.TrimSpace(it)) >= 0
-		})
+		addrs := strings.Split(response, ",")
 		ips := make([]net.IP, len(addrs))
 		for i, addr := range addrs {
 			ip := net.ParseIP(addr)
@@ -178,17 +200,18 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 	return t, nil
 }
 
-func (t *Tun2ray) Close() {
+func (t *Tun2ray) Close() error {
 	internet.UseAlternativeSystemDialer(nil)
-	comm.CloseIgnore(t.dev)
+	common.CloseIgnore(t.dev)
 	t.connectionsLock.Lock()
 	for item := t.connections.Front(); item != nil; item = item.Next() {
-		common.Close(item.Value)
+		common.CloseIgnore(item.Value)
 	}
 	t.connectionsLock.Unlock()
-	if t.protectCloser != nil {
-		_ = t.protectCloser.Close()
+	if t.protectServer != nil {
+		_ = t.protectServer.Close()
 	}
+	return nil
 }
 
 func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNet.Destination, conn net.Conn) {
@@ -199,12 +222,14 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		SSID:        inbound.GetSSID(),
 	}
 
-	isDns := destination.Address.String() == t.router
+	isDns := false
+	if addr, err := netip.ParseAddr(destination.Address.String()); err == nil {
+		isDns = addr == t.dns4 || (t.dns6.IsValid() && addr == t.dns6)
+	}
+
 	if isDns {
 		if destination.Port != 53 {
-			t.connectionsLock.Lock()
-			_ = t.connections.PushBack(conn)
-			t.connectionsLock.Unlock()
+			conn.Close()
 			return
 		}
 		ib.Tag = "dns-in"
@@ -305,7 +330,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		newError(err).AtError().WriteToLog(session.ExportIDToError(ctx))
 		return
 	}
-	defer comm.CloseIgnore(proxyConn)
+	defer common.CloseIgnore(proxyConn)
 	_ = task.Run(ctx, func() error {
 		_ = buf.Copy(buf.NewReader(conn), buf.NewWriter(proxyConn))
 		return io.EOF
@@ -314,7 +339,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		return io.EOF
 	})
 
-	comm.CloseIgnore(conn)
+	common.CloseIgnore(conn)
 
 	t.connectionsLock.Lock()
 	t.connections.Remove(element)
@@ -363,7 +388,12 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		NetworkType: inbound.GetNetworkType(),
 		SSID:        inbound.GetSSID(),
 	}
-	isDns := destination.Address.String() == t.router
+
+	isDns := false
+	if addr, err := netip.ParseAddr(destination.Address.String()); err == nil {
+		isDns = addr == t.dns4 || (t.dns6.IsValid() && addr == t.dns6)
+	}
+
 	if isDns {
 		if destination.Port != 53 {
 			return
@@ -424,7 +454,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		Status: log.AccessAccepted,
 	})
 
-	conn, err := t.v2ray.dialUDP(ctx)
+	conn, err := t.v2ray.dialUDP(ctx, destination, time.Second*300)
 	if err != nil {
 		newError(err).AtError().WriteToLog(session.ExportIDToError(ctx))
 		return
@@ -494,7 +524,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		}
 	}
 	bytespool.Free(buffer)
-	comm.CloseIgnore(conn)
+	common.CloseIgnore(conn)
 	t.udpTable.Delete(natKey)
 
 	t.connectionsLock.Lock()

@@ -1,5 +1,3 @@
-//go:build android
-
 /*
 Copyright (C) 2021 by nekohasekai <contact-sagernet@sekai.icu>
 
@@ -17,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package libcore
+package libsagernetcore
 
 /*
    #cgo LDFLAGS: -landroid -llog

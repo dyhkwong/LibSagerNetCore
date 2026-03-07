@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2021 by clash authors
+Copyright (C) 2021  clash authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"strings"
 
-	"libcore/clash/common/pool"
+	"github.com/dyhkwong/libsagernetcore/clash/common/pool"
 )
 
 func init() {

@@ -15,12 +15,13 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package libcore
+package libsagernetcore
 
 import (
 	"net"
 	"net/url"
 	"strconv"
+	"strings"
 	_ "unsafe"
 )
 
@@ -36,7 +37,9 @@ type URL interface {
 	GetHost() string
 	SetHost(host string)
 	GetPort() int32
-	SetPort(port int32)
+	SetHostPort(host string, port int32)
+	SetRawHost(host string)
+	GetRawHost() string
 	GetPath() string
 	SetPath(path string)
 	GetRawPath() string
@@ -44,7 +47,9 @@ type URL interface {
 	GetRawQuery() string
 	SetRawQuery(rawPath string)
 	HasQueryParameter(key string) bool
+	CountQueryParameter(key string) int
 	GetQueryParameter(key string) string
+	GetQueryParameterAt(key string, i int) string
 	AddQueryParameter(key, value string)
 	DeleteQueryParameter(key string)
 	GetFragment() string
@@ -75,11 +80,11 @@ func setFragment(u *url.URL, fragment string) error
 func setPath(u *url.URL, fragment string) error
 
 func ParseURL(rawURL string) (URL, error) {
-	url, err := url.Parse(rawURL)
+	u, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
 	}
-	return &netURL{URL: url}, nil
+	return &netURL{URL: u}, nil
 }
 
 func (u *netURL) GetScheme() string {
@@ -128,7 +133,7 @@ func (u *netURL) GetPassword() string {
 
 func (u *netURL) SetPassword(password string) error {
 	if u.User == nil {
-		return newError("set username first")
+		u.User = url.UserPassword("", password)
 	}
 	u.User = url.UserPassword(u.User.Username(), password)
 	return nil
@@ -139,9 +144,9 @@ func (u *netURL) GetHost() string {
 }
 
 func (u *netURL) SetHost(host string) {
-	_, port, err := net.SplitHostPort(u.Host)
-	if err == nil {
-		u.Host = net.JoinHostPort(host, port)
+	// See net.JoinHostPort
+	if strings.IndexByte(host, ':') >= 0 {
+		u.Host = "[" + host + "]"
 	} else {
 		u.Host = host
 	}
@@ -156,13 +161,16 @@ func (u *netURL) GetPort() int32 {
 	return int32(port)
 }
 
-func (u *netURL) SetPort(port int32) {
-	host, _, err := net.SplitHostPort(u.Host)
-	if err == nil {
-		u.Host = net.JoinHostPort(host, strconv.Itoa(int(port)))
-	} else {
-		u.Host = net.JoinHostPort(u.Host, strconv.Itoa(int(port)))
-	}
+func (u *netURL) SetHostPort(host string, port int32) {
+	u.Host = net.JoinHostPort(host, strconv.Itoa(int(port)))
+}
+
+func (u *netURL) GetRawHost() string {
+	return u.Host
+}
+
+func (u *netURL) SetRawHost(host string) {
+	u.Host = host
 }
 
 func (u *netURL) GetPath() string {
@@ -199,6 +207,27 @@ func (u *netURL) HasQueryParameter(key string) bool {
 
 func (u *netURL) GetQueryParameter(key string) string {
 	return u.Query().Get(key)
+}
+
+func (u *netURL) CountQueryParameter(key string) int {
+	queries := u.Query()
+	v, ok := queries[key]
+	if !ok {
+		return 0
+	}
+	return len(v)
+}
+
+func (u *netURL) GetQueryParameterAt(key string, i int) string {
+	queries := u.Query()
+	v, ok := queries[key]
+	if !ok {
+		return ""
+	}
+	if i < 0 || i >= len(v) {
+		return ""
+	}
+	return v[i]
 }
 
 func (u *netURL) AddQueryParameter(key, value string) {

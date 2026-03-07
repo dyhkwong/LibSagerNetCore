@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2025 by dyhkwong
+Copyright (C) 2021 by nekohasekai <contact-sagernet@sekai.icu>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,23 +15,21 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package libcore
+package common
 
 import (
-	"os"
-	_ "unsafe"
+	"github.com/v2fly/v2ray-core/v5/common"
 )
 
-// Workaround "seccomp prevented call to disallowed arm64 system call 434" crash on Android < 12.
-// https://github.com/golang/go/issues/70508
-// API level 26 and 27 say "disallowed arm64 system call 0" instead of 434.
-// https://github.com/python/cpython/issues/123014
-
-//go:linkname checkPidfdOnce os.checkPidfdOnce
-var checkPidfdOnce func() error
-
-func init() {
-	checkPidfdOnce = func() error {
-		return os.ErrInvalid
+func CloseIgnore(closer ...interface{}) {
+	for _, c := range closer {
+		if c == nil {
+			continue
+		}
+		if ia, ok := c.(common.Interruptible); ok {
+			ia.Interrupt()
+		} else if ca, ok := c.(common.Closable); ok {
+			_ = ca.Close()
+		}
 	}
 }
