@@ -18,6 +18,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package gvisor
 
 import (
+	"log"
+
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/header"
 	"gvisor.dev/gvisor/pkg/tcpip/stack"
@@ -51,7 +53,7 @@ func (e *linkEndpointWithDiscard) DeliverNetworkPacket(protocol tcpip.NetworkPro
 		if e.discardICMP {
 			hdr := header.IPv4(packet)
 			if hdr.TransportProtocol() == header.ICMPv4ProtocolNumber {
-				newError("discarded ICMP to ", hdr.DestinationAddress()).AtDebug().WriteToLog()
+				log.Print("discarded ICMP to ", hdr.DestinationAddress())
 				return
 			}
 		}
@@ -63,11 +65,11 @@ func (e *linkEndpointWithDiscard) DeliverNetworkPacket(protocol tcpip.NetworkPro
 		if e.discardICMP || discardIPv6 {
 			hdr := header.IPv6(packet)
 			if e.discardICMP && hdr.TransportProtocol() == header.ICMPv4ProtocolNumber {
-				newError("discarded ICMPv6 to ", hdr.DestinationAddress()).AtDebug().WriteToLog()
+				log.Print("discarded ICMPv6 to ", hdr.DestinationAddress())
 				return
 			}
 			if discardIPv6 {
-				newError("discarded IPv6 to ", hdr.DestinationAddress()).AtDebug().WriteToLog()
+				log.Print("discarded IPv6 to ", hdr.DestinationAddress())
 				return
 			}
 		}

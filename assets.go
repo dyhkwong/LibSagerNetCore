@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package libsagernetcore
 
 import (
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -48,7 +49,7 @@ func InitializeV2Ray(internalAssets string, externalAssets string, prefix string
 		if file, err := asset.Open(assetsPrefix + fileName); err == nil {
 			return file, nil
 		}
-		return nil, newError("asset ", fileName, " not found")
+		return nil, errors.New("asset " + fileName + " not found")
 	}
 
 	filesystem.NewFileSeeker = fileSeeker

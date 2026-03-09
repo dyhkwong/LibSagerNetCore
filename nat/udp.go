@@ -18,6 +18,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package nat
 
 import (
+	"errors"
+	"net"
+
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	v2rayNet "github.com/v2fly/v2ray-core/v5/common/net"
 	"gvisor.dev/gvisor/pkg/buffer"
@@ -52,7 +55,7 @@ func (t *SystemTun) processIPv4UDP(cache *buf.Buffer, ipHdr header.IPv4, hdr hea
 	copy(newHeader, ipHdr[:ipHdrLength+header.UDPMinimumSize])
 
 	cache.Advance(int32(ipHdrLength + header.UDPMinimumSize))
-	go t.handler.NewPacket(source, destination, cache, func(bytes []byte, addr *v2rayNet.UDPAddr) (int, error) {
+	go t.handler.NewPacket(source, destination, cache, func(bytes []byte, addr *net.UDPAddr) (int, error) {
 		var newSourceAddress tcpip.Address
 		var newSourcePort uint16
 
@@ -83,7 +86,7 @@ func (t *SystemTun) processIPv4UDP(cache *buf.Buffer, ipHdr header.IPv4, hdr hea
 			Payload: payload,
 		})
 		if err := t.writeRawPacket(pkt); err != nil {
-			return 0, newError(err.String())
+			return 0, errors.New(err.String())
 		}
 
 		return len(bytes), nil
@@ -144,7 +147,7 @@ func (t *SystemTun) processIPv6UDP(cache *buf.Buffer, ipHdr header.IPv6, hdr hea
 			Payload: payload,
 		})
 		if err := t.writeRawPacket(pkt); err != nil {
-			return 0, newError(err.String())
+			return 0, errors.New(err.String())
 		}
 
 		return len(bytes), nil

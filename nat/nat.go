@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package nat
 
 import (
+	"log"
 	"net/netip"
 	"os"
 
@@ -127,7 +128,7 @@ func (t *SystemTun) deliverPacket(cache *buf.Buffer, packet []byte) bool {
 			return true
 		case header.ICMPv4ProtocolNumber:
 			if t.discardICMP {
-				newError("discarded ICMP to ", ipHdr.DestinationAddress()).AtDebug().WriteToLog()
+				log.Print("discarded ICMP to ", ipHdr.DestinationAddress())
 				return false
 			}
 			t.processICMPv4(ipHdr, ipHdr.Payload())
@@ -141,20 +142,20 @@ func (t *SystemTun) deliverPacket(cache *buf.Buffer, packet []byte) bool {
 		switch ipHdr.TransportProtocol() {
 		case header.TCPProtocolNumber:
 			if discardIPv6 {
-				newError("discarded IPv6 to ", ipHdr.DestinationAddress()).AtDebug().WriteToLog()
+				log.Print("discarded IPv6 to ", ipHdr.DestinationAddress())
 				return false
 			}
 			t.tcpForwarder.processIPv6(ipHdr, ipHdr.Payload())
 		case header.UDPProtocolNumber:
 			if discardIPv6 {
-				newError("discarded IPv6 to ", ipHdr.DestinationAddress()).AtDebug().WriteToLog()
+				log.Print("discarded IPv6 to ", ipHdr.DestinationAddress())
 				return true
 			}
 			t.processIPv6UDP(cache, ipHdr, ipHdr.Payload())
 			return true
 		case header.ICMPv6ProtocolNumber:
 			if discardIPv6 || t.discardICMP {
-				newError("discarded ICMPv6 to ", ipHdr.DestinationAddress()).AtDebug().WriteToLog()
+				log.Print("discarded ICMPv6 to ", ipHdr.DestinationAddress())
 				return false
 			}
 			t.processICMPv6(ipHdr, ipHdr.Payload())

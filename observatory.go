@@ -18,6 +18,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package libsagernetcore
 
 import (
+	"errors"
+	"log"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/v2fly/v2ray-core/v5/app/observatory"
 	"github.com/v2fly/v2ray-core/v5/features/extension"
@@ -25,7 +28,7 @@ import (
 
 func (instance *V2RayInstance) GetObservatoryStatus(tag string) ([]byte, error) {
 	if instance.observatory == nil {
-		return nil, newError("observatory unavailable")
+		return nil, errors.New("observatory unavailable")
 	}
 	observer, err := instance.observatory.GetFeaturesByTag(tag)
 	if err != nil {
@@ -40,7 +43,7 @@ func (instance *V2RayInstance) GetObservatoryStatus(tag string) ([]byte, error) 
 
 func (instance *V2RayInstance) UpdateStatus(tag string, status []byte) error {
 	if instance.observatory == nil {
-		return newError("observatory unavailable")
+		return errors.New("observatory unavailable")
 	}
 
 	s := new(observatory.OutboundStatus)
@@ -77,7 +80,7 @@ func (instance *V2RayInstance) SetStatusUpdateListener(tag string, listener Obse
 			status, _ := proto.Marshal(result)
 			err = listener.OnUpdateObservatoryStatus(status)
 			if err != nil {
-				newError("failed to send observatory status update").Base(err).AtWarning().WriteToLog()
+				log.Print("failed to send observatory status update: ", err)
 			}
 		}
 	}

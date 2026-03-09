@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package gvisor
 
 import (
+	"errors"
 	"io"
 	"math"
 	"os"
@@ -174,14 +175,14 @@ func New(dev int32, mtu int32, handler tun.Handler, pcapFile *os.File, enableIPv
 		}
 	}
 
-	if tcpipErr := s.CreateNIC(DefaultNIC, endpoint); tcpipErr != nil {
-		return nil, newError(tcpipErr)
+	if err := s.CreateNIC(DefaultNIC, endpoint); err != nil {
+		return nil, errors.New(err.String())
 	}
-	if tcpipErr := s.SetSpoofing(DefaultNIC, true); tcpipErr != nil {
-		return nil, newError(tcpipErr)
+	if err := s.SetSpoofing(DefaultNIC, true); err != nil {
+		return nil, errors.New(err.String())
 	}
-	if tcpipErr := s.SetPromiscuousMode(DefaultNIC, true); tcpipErr != nil {
-		return nil, newError(tcpipErr)
+	if err := s.SetPromiscuousMode(DefaultNIC, true); err != nil {
+		return nil, errors.New(err.String())
 	}
 	return &GVisor{
 		endpoint: endpoint,

@@ -19,6 +19,7 @@ package libsagernetcore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -145,10 +146,10 @@ func (instance *V2RayInstance) WithProtect(path string) {
 
 func (instance *V2RayInstance) LoadConfig(content string) error {
 	if instance.closed {
-		return newError("instance closed")
+		return errors.New("instance closed")
 	}
 	if instance.started {
-		return newError("instance already started")
+		return errors.New("instance already started")
 	}
 	config, err := serial.LoadJSONConfig(strings.NewReader(content))
 	if err != nil {
@@ -168,13 +169,13 @@ func (instance *V2RayInstance) LoadConfig(content string) error {
 
 func (instance *V2RayInstance) Start() error {
 	if instance.closed {
-		return newError("instance closed")
+		return errors.New("instance closed")
 	}
 	if instance.started {
-		return newError("instance already started")
+		return errors.New("instance already started")
 	}
 	if instance.core == nil {
-		return newError("instance not initialized")
+		return errors.New("instance not initialized")
 	}
 	if err := instance.core.Start(); err != nil {
 		return err
@@ -196,7 +197,7 @@ func (instance *V2RayInstance) QueryStats(tag string, direct string) int64 {
 
 func (instance *V2RayInstance) Close() error {
 	if instance.closed {
-		return newError("instance closed")
+		return errors.New("instance closed")
 	}
 	if instance.started {
 		instance.core.Close()
@@ -214,30 +215,30 @@ func toContext(ctx context.Context, v *core.Instance) context.Context
 
 func (instance *V2RayInstance) dial(ctx context.Context, destination net.Destination) (net.Conn, error) {
 	if instance.closed {
-		return nil, newError("instance closed")
+		return nil, errors.New("instance closed")
 	}
 	if !instance.started {
-		return nil, newError("instance not started")
+		return nil, errors.New("instance not started")
 	}
 	return core.Dial(ctx, instance.core, destination)
 }
 
 /*func (instance *V2RayInstance) dialUDP(ctx context.Context) (net.PacketConn, error) {
 	if instance.closed {
-		return nil, newError("instance closed")
+		return nil, errors.New("instance closed")
 	}
 	if !instance.started {
-		return nil, newError("instance not started")
+		return nil, errors.New("instance not started")
 	}
 	return core.DialUDP(ctx, instance.core)
 }*/
 
 func (instance *V2RayInstance) dialUDP(ctx context.Context, destination net.Destination, timeout time.Duration) (net.PacketConn, error) {
 	if instance.closed {
-		return nil, newError("instance closed")
+		return nil, errors.New("instance closed")
 	}
 	if !instance.started {
-		return nil, newError("instance not started")
+		return nil, errors.New("instance not started")
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	link, err := instance.dispatcher.Dispatch(ctx, destination)

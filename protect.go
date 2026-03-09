@@ -18,9 +18,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package libsagernetcore
 
 import (
+	"errors"
 	"io"
 	"net"
 	"os"
+	"strconv"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -40,11 +42,11 @@ func getOneFd(socketFd int) (int, error) {
 	msgs, _ := unix.ParseSocketControlMessage(buf)
 
 	if len(msgs) != 1 {
-		return 0, newError("invalid msgs count: ", len(msgs))
+		return 0, errors.New("invalid msgs count: " + strconv.Itoa(len(msgs)))
 	}
 	fds, _ := unix.ParseUnixRights(&msgs[0])
 	if len(fds) != 1 {
-		return 0, newError("invalid fds count: ", len(fds))
+		return 0, errors.New("invalid fds count: " + strconv.Itoa(len(fds)))
 	}
 	return fds[0], nil
 }
@@ -109,7 +111,7 @@ func protect(path string, fd uintptr) error {
 		return err
 	}
 	if n != 1 || msg[0] != ProtectSuccess {
-		return newError("failed to protect fd")
+		return errors.New("failed to protect fd")
 	}
 	return nil
 }

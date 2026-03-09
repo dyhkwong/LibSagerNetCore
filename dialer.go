@@ -50,31 +50,19 @@ type protectedDialer struct {
 
 func (dialer protectedDialer) Dial(ctx context.Context, src v2rayNet.Address, dest v2rayNet.Destination, sockopt *internet.SocketConfig) (net.Conn, error) {
 	if dest.Network == v2rayNet.Network_Unknown || dest.Network == v2rayNet.Network_UNIX || dest.Address == nil {
-		return nil, newError("invalid destination")
+		return nil, errors.New("invalid destination")
 	}
-	var ips []net.IP
 	if dest.Address.Family().IsDomain() {
-		var err error
-		ips, err = dialer.resolver(dest.Address.Domain())
+		ips, err := dialer.resolver(dest.Address.Domain())
 		if err == nil && len(ips) == 0 {
 			err = dns.ErrEmptyResponse
 		}
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		ips = append(ips, dest.Address.IP())
+		dest.Address = v2rayNet.IPAddress(ips[0])
 	}
-	errs := []error{}
-	for _, ip := range ips {
-		dest.Address = v2rayNet.IPAddress(ip)
-		if conn, err := dialer.dial(ctx, src, dest, sockopt); err == nil {
-			return conn, nil
-		} else {
-			errs = append(errs, err)
-		}
-	}
-	return nil, newError(errors.Combine(errs...))
+	return dialer.dial(ctx, src, dest, sockopt)
 }
 
 func (dialer protectedDialer) dial(ctx context.Context, src v2rayNet.Address, dest v2rayNet.Destination, sockopt *internet.SocketConfig) (net.Conn, error) {
@@ -93,7 +81,7 @@ func (dialer protectedDialer) dial(ctx context.Context, src v2rayNet.Address, de
 	}
 	if !dialer.protector.Protect(int32(fd)) {
 		unix.Close(fd)
-		return nil, newError("protect failed")
+		return nil, errors.New("protect failed")
 	}
 	if sockopt != nil {
 		var network string
@@ -147,7 +135,7 @@ func (dialer protectedDialer) dial(ctx context.Context, src v2rayNet.Address, de
 	file := os.NewFile(uintptr(fd), "socket")
 	if file == nil {
 		unix.Close(fd)
-		return nil, newError("failed to connect to fd")
+		return nil, errors.New("failed to connect to fd")
 	}
 	defer file.Close()
 

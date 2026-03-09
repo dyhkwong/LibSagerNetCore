@@ -36,7 +36,7 @@ import (
 )
 
 var (
-	tag      = C.CString("libcore")
+	tag      = C.CString("libsagernetcore")
 	tagV2Ray = C.CString("v2ray-core")
 )
 

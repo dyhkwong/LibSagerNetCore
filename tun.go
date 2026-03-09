@@ -35,7 +35,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/app/proxyman/inbound"
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/v2fly/v2ray-core/v5/common/bytespool"
-	"github.com/v2fly/v2ray-core/v5/common/log"
+	v2log "github.com/v2fly/v2ray-core/v5/common/log"
 	v2rayNet "github.com/v2fly/v2ray-core/v5/common/net"
 	"github.com/v2fly/v2ray-core/v5/common/session"
 	"github.com/v2fly/v2ray-core/v5/common/task"
@@ -43,6 +43,7 @@ import (
 	"github.com/v2fly/v2ray-core/v5/transport/internet"
 
 	"github.com/dyhkwong/libsagernetcore/common"
+	"github.com/dyhkwong/libsagernetcore/errors"
 	"github.com/dyhkwong/libsagernetcore/gvisor"
 	"github.com/dyhkwong/libsagernetcore/nat"
 	"github.com/dyhkwong/libsagernetcore/tun"
@@ -138,11 +139,11 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 			path := externalAssetsPath + "pcap/" + strconv.FormatInt(timestamp, 10) + ".pcap"
 			err = os.MkdirAll(filepath.Dir(path), 0o755)
 			if err != nil {
-				return nil, newError("unable to create pcap dir").Base(err)
+				return nil, err
 			}
 			pcapFile, err = os.Create(path)
 			if err != nil {
-				return nil, newError("unable to create pcap file").Base(err)
+				return nil, err
 			}
 		}
 
@@ -256,9 +257,9 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 			self = int(uid) == os.Getuid()
 			if !self {
 				if packageName, _ := uidDumper.GetPackageName(int32(uid)); len(packageName) == 0 {
-					newError("[TCP (", uid, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+					newError("[TCP (", uid, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog(errors.ExportIDToError(ctx))
 				} else {
-					newError("[TCP (", uid, "/", packageName, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+					newError("[TCP (", uid, "/", packageName, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog(errors.ExportIDToError(ctx))
 				}
 			}
 			ib.UID = uint32(uid)
@@ -319,15 +320,15 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 	element := t.connections.PushBack(conn)
 	t.connectionsLock.Unlock()
 
-	ctx = log.ContextWithAccessMessage(ctx, &log.AccessMessage{
+	ctx = v2log.ContextWithAccessMessage(ctx, &v2log.AccessMessage{
 		From:   source,
 		To:     destination,
-		Status: log.AccessAccepted,
+		Status: v2log.AccessAccepted,
 	})
 
 	proxyConn, err := t.v2ray.dial(ctx, destination)
 	if err != nil {
-		newError(err).AtError().WriteToLog(session.ExportIDToError(ctx))
+		newError(err).AtError().WriteToLog(errors.ExportIDToError(ctx))
 		return
 	}
 	defer common.CloseIgnore(proxyConn)
@@ -422,9 +423,9 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 			self = int(uid) == os.Getuid()
 			if !self {
 				if packageName, _ := uidDumper.GetPackageName(int32(uid)); len(packageName) == 0 {
-					newError("[UDP (", uid, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+					newError("[UDP (", uid, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog(errors.ExportIDToError(ctx))
 				} else {
-					newError("[UDP (", uid, "/", packageName, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog(session.ExportIDToError(ctx))
+					newError("[UDP (", uid, "/", packageName, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog(errors.ExportIDToError(ctx))
 				}
 			}
 			ib.UID = uint32(uid)
@@ -448,15 +449,15 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		})
 	}
 
-	ctx = log.ContextWithAccessMessage(ctx, &log.AccessMessage{
+	ctx = v2log.ContextWithAccessMessage(ctx, &v2log.AccessMessage{
 		From:   source,
 		To:     destination,
-		Status: log.AccessAccepted,
+		Status: v2log.AccessAccepted,
 	})
 
 	conn, err := t.v2ray.dialUDP(ctx, destination, time.Second*300)
 	if err != nil {
-		newError(err).AtError().WriteToLog(session.ExportIDToError(ctx))
+		newError(err).AtError().WriteToLog(errors.ExportIDToError(ctx))
 		return
 	}
 

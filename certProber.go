@@ -36,6 +36,7 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
+	"errors"
 	"net"
 	"strconv"
 	"strings"
@@ -220,7 +221,7 @@ func CertificateToPrettyInfo(input string) (string, error) {
 		certs = append(certs, cert)
 	}
 	if len(certs) == 0 {
-		return "", newError("no certificate found")
+		return "", errors.New("no certificate found")
 	}
 	certInfo := new(strings.Builder)
 	for i, cert := range certs {

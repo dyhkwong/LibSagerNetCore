@@ -19,6 +19,7 @@ package gvisor
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"net"
 	"strconv"
@@ -47,13 +48,13 @@ func gUdpHandler(s *stack.Stack, handler tun.Handler) {
 		srcAddr := net.JoinHostPort(id.RemoteAddress.String(), strconv.Itoa(int(id.RemotePort)))
 		src, err := v2rayNet.ParseDestination(fmt.Sprint("udp:", srcAddr))
 		if err != nil {
-			newError("[UDP] parse source address ", srcAddr, " failed: ", err).AtWarning().WriteToLog()
+			log.Print("[UDP] parse source address ", srcAddr, " failed: ", err)
 			return true
 		}
 		dstAddr := net.JoinHostPort(id.LocalAddress.String(), strconv.Itoa(int(id.LocalPort)))
 		dst, err := v2rayNet.ParseDestination(fmt.Sprint("udp:", dstAddr))
 		if err != nil {
-			newError("[UDP] parse destination address ", dstAddr, " failed: ", err).AtWarning().WriteToLog()
+			log.Print("[UDP] parse destination address ", dstAddr, " failed: ", err)
 			return true
 		}
 

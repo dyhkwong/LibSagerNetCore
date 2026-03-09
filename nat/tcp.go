@@ -20,6 +20,7 @@ package nat
 import (
 	"context"
 	"errors"
+	"log"
 	"net"
 	"time"
 
@@ -61,11 +62,11 @@ func newTcpForwarder(tun *SystemTun) (*tcpForwarder, error) {
 		time.Sleep(time.Millisecond * 100)
 	}
 	if err != nil {
-		return nil, newError("failed to create tcp forwarder at ", address.IP).Base(err)
+		return nil, err
 	}
 	tcpForwarder.listener4 = listener4.(*net.TCPListener)
 	tcpForwarder.port4 = uint16(listener4.Addr().(*net.TCPAddr).Port)
-	newError("tcp forwarder started at ", listener4.Addr().(*net.TCPAddr)).AtDebug().WriteToLog()
+	log.Print("tcp forwarder started at ", listener4.Addr().(*net.TCPAddr))
 	if tun.enableIPv6 {
 		address := &net.TCPAddr{
 			IP: tun.addr6.AsSlice(),
@@ -81,11 +82,11 @@ func newTcpForwarder(tun *SystemTun) (*tcpForwarder, error) {
 			time.Sleep(time.Millisecond * 100)
 		}
 		if err != nil {
-			return nil, newError("failed to create tcp forwarder at ", address.IP).Base(err)
+			return nil, err
 		}
 		tcpForwarder.listener6 = listener6.(*net.TCPListener)
 		tcpForwarder.port6 = uint16(listener6.Addr().(*net.TCPAddr).Port)
-		newError("tcp forwarder started at ", listener6.Addr().(*net.TCPAddr)).AtDebug().WriteToLog()
+		log.Print("tcp forwarder started at ", listener6.Addr().(*net.TCPAddr))
 	}
 	return tcpForwarder, nil
 }
@@ -103,7 +104,7 @@ func (t *tcpForwarder) dispatch(listener *net.TCPListener) error {
 		session = iSession.(*peerValue)
 	} else {
 		conn.Close()
-		newError("dropped unknown tcp session with source port ", key.sourcePort, " to destination address ", key.destinationAddress).AtWarning().WriteToLog()
+		log.Print("dropped unknown tcp session with source port ", key.sourcePort, " to destination address ", key.destinationAddress)
 		return nil
 	}
 
@@ -131,7 +132,7 @@ func (t *tcpForwarder) dispatchLoop(listener *net.TCPListener) {
 	for {
 		if err := t.dispatch(listener); err != nil {
 			if !errors.Is(err, net.ErrClosed) {
-				newError("dispatch tcp conn failed").Base(err).WriteToLog()
+				log.Print("dispatch tcp conn failed: ", err)
 			}
 			break
 		}
@@ -163,7 +164,7 @@ func (t *tcpForwarder) processIPv4(ipHdr header.IPv4, tcpHdr header.TCP) {
 		if ok {
 			session = iSession.(*peerValue)
 		} else {
-			newError("unknown tcp session with source port ", destinationPort, " to destination address ", destinationAddress).AtWarning().WriteToLog()
+			log.Print("unknown tcp session with source port ", destinationPort, " to destination address ", destinationAddress)
 			return
 		}
 		ipHdr.SetSourceAddress(destinationAddress)
@@ -209,7 +210,7 @@ func (t *tcpForwarder) processIPv6(ipHdr header.IPv6, tcpHdr header.TCP) {
 		if ok {
 			session = iSession.(*peerValue)
 		} else {
-			newError("unknown tcp session with source port ", destinationPort, " to destination address ", destinationAddress).AtWarning().WriteToLog()
+			log.Print("unknown tcp session with source port ", destinationPort, " to destination address ", destinationAddress)
 			return
 		}
 

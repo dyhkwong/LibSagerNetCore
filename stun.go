@@ -19,6 +19,7 @@ package libsagernetcore
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/netip"
 	"strconv"
@@ -35,7 +36,7 @@ func setupStunClient(useSOCKS5, useDNS bool, serverAddress string, socksPort, dn
 		}
 		if _, err := netip.ParseAddr(addr); err != nil && useDNS {
 			if dnsPort <= 0 {
-				return nil, newError("server address is a domain name, but DNS inbound is disabled")
+				return nil, errors.New("server address is a domain name, but DNS inbound is disabled")
 			}
 			resolver := &net.Resolver{
 				PreferGo: true,

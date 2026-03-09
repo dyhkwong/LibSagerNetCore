@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -109,7 +110,7 @@ func setupMozillaCAProvider() error {
 	}
 	roots := x509.NewCertPool()
 	if !roots.AppendCertsFromPEM(pemBytes) {
-		return newError("failed to append certificates from pem")
+		return errors.New("failed to append certificates from pem")
 	}
 	x509.SystemCertPool()
 	systemRoots = roots
@@ -123,7 +124,7 @@ func setupCustomCAProvider() error {
 	}
 	roots := x509.NewCertPool()
 	if !roots.AppendCertsFromPEM(pemBytes) {
-		return newError("failed to append certificates from pem")
+		return errors.New("failed to append certificates from pem")
 	}
 	x509.SystemCertPool()
 	systemRoots = roots
@@ -196,7 +197,7 @@ func setupSystemAndUserCAProvider() error {
 			}
 		}
 		if err != nil {
-			return newError("failed to parse certificate ", path).Base(err)
+			return err
 		}
 		for _, cert := range certs {
 			block := &pem.Block{
