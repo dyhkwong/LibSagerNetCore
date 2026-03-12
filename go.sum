@@ -61,8 +61,8 @@ github.com/dyhkwong/hysteria/extras/v2 v2.7.1-1 h1:ZXqbFl/VeWa4eJAvo0yMaSjUkGb4g
 github.com/dyhkwong/hysteria/extras/v2 v2.7.1-1/go.mod h1:jBhySesF/lc8v1SyqEbXQVcuboRWlArbj7hT0o+M7mI=
 github.com/dyhkwong/sing-juicity v0.1.1 h1:8g3ylt+vHNTvoTePefXzvjtaCbSWKGvTmJmnrIbHBsM=
 github.com/dyhkwong/sing-juicity v0.1.1/go.mod h1:EZdZmG8yVt+nhDJii0RbUGB8pV77SoavDoBQ7uMBFCI=
-github.com/dyhkwong/v2ray-core/v5 v5.47.1-0.20260312100033-2db93b457fc9 h1:JpoWSwjDvbI7v5SFCZ8nKtqb8mrbevxGo8LCO9QCIS0=
-github.com/dyhkwong/v2ray-core/v5 v5.47.1-0.20260312100033-2db93b457fc9/go.mod h1:fLfRJq2NsoCoRZHRqO1R7X4OSw2gCg4cH6TffL3f/bM=
+github.com/dyhkwong/v2ray-core/v5 v5.47.1-0.20260312174207-db166008b9ca h1:GhkC9ivuh9AUQxMuJpDeK9gnaR8yadp+uNtZfGleBLg=
+github.com/dyhkwong/v2ray-core/v5 v5.47.1-0.20260312174207-db166008b9ca/go.mod h1:fLfRJq2NsoCoRZHRqO1R7X4OSw2gCg4cH6TffL3f/bM=
 github.com/enfein/mieru/v3 v3.29.0 h1:i5Hwl5spEWg4ydvYW86zWSYVJ2uGTf5sLYQmFXHdulQ=
 github.com/enfein/mieru/v3 v3.29.0/go.mod h1:zJBUCsi5rxyvHM8fjFf+GLaEl4OEjjBXr1s5F6Qd3hM=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=

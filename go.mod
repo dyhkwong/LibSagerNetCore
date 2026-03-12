@@ -71,7 +71,7 @@ require (
 )
 
 replace (
-	github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.47.1-0.20260312100033-2db93b457fc9
+	github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.47.1-0.20260312174207-db166008b9ca
 	// workaround https://github.com/google/gvisor/commit/868dfbce4fd59f03145e2bc5ac0b585917c371fa
 	gvisor.dev/gvisor => gvisor.dev/gvisor v0.0.0-20250429202743-3a608a52255d
 )
