@@ -30,6 +30,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	"github.com/wzshiming/socks5"
@@ -67,22 +68,23 @@ var (
 )
 
 type httpClient struct {
-	tls       tls.Config
-	client    http.Client
-	transport http.Transport
+	client    *http.Client
+	transport *http.Transport
 }
 
 func NewHttpClient() HTTPClient {
-	client := new(httpClient)
-	client.client.Transport = &client.transport
-	client.transport.TLSClientConfig = &client.tls
-	client.transport.DisableKeepAlives = true
-	client.transport.ForceAttemptHTTP2 = true
-	return client
+	transport := &http.Transport{
+		DisableKeepAlives: true,
+		ForceAttemptHTTP2: true,
+	}
+	return &httpClient{
+		client:    &http.Client{Transport: transport},
+		transport: transport,
+	}
 }
 
 func (c *httpClient) RestrictedTLS() {
-	c.tls.MinVersion = tls.VersionTLS13
+	c.transport.TLSClientConfig.MinVersion = tls.VersionTLS13
 }
 
 func (c *httpClient) UseSocks5(port int32) {
@@ -98,7 +100,7 @@ func (c *httpClient) KeepAlive() {
 
 func (c *httpClient) NewRequest() HTTPRequest {
 	req := &httpRequest{httpClient: c}
-	req.request = http.Request{
+	req.request = &http.Request{
 		Method: "GET",
 		Header: http.Header{},
 	}
@@ -106,12 +108,12 @@ func (c *httpClient) NewRequest() HTTPRequest {
 }
 
 func (c *httpClient) Close() {
-	c.transport.CloseIdleConnections()
+	c.client.CloseIdleConnections()
 }
 
 type httpRequest struct {
 	*httpClient
-	request http.Request
+	request *http.Request
 }
 
 func (r *httpRequest) SetURL(link string) (err error) {
@@ -151,20 +153,27 @@ func (r *httpRequest) SetContentString(content string) {
 }
 
 func (r *httpRequest) Execute() (HTTPResponse, error) {
-	response, err := r.client.Do(&r.request)
+	ctx, cancel := context.WithCancelCause(context.Background())
+	timer := time.AfterFunc(time.Second*5, func() {
+		cancel(context.DeadlineExceeded)
+	})
+	defer timer.Stop()
+	response, err := r.client.Do(r.request.WithContext(ctx))
 	if err != nil {
+		if context.Cause(ctx) == context.DeadlineExceeded {
+			return nil, context.DeadlineExceeded
+		}
 		return nil, err
 	}
-	httpResp := &httpResponse{Response: response}
+	resp := &httpResponse{Response: response}
 	if response.StatusCode != http.StatusOK {
-		return nil, errors.New(httpResp.errorString())
+		return nil, errors.New(resp.errorString())
 	}
-	return httpResp, nil
+	return resp, nil
 }
 
 type httpResponse struct {
 	*http.Response
-
 	getContentOnce sync.Once
 	content        []byte
 	contentError   error
