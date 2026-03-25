@@ -18,8 +18,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package libsagernetcore
 
 import (
-	"sync/atomic"
-
 	"github.com/v2fly/v2ray-core/v5/app/proxyman/inbound"
 	"github.com/v2fly/v2ray-core/v5/app/proxyman/outbound"
 	"github.com/v2fly/v2ray-core/v5/common/net"
@@ -63,8 +61,8 @@ func InterfaceUpdate() {
 	outbound.InterfaceUpdate()
 }
 
-var discardIPv6 atomic.Bool
+var discardIPv6 bool
 
 func SetDiscardIPv6(shouldDiscardIPv6 bool) {
-	discardIPv6.Store(shouldDiscardIPv6)
+	discardIPv6 = shouldDiscardIPv6
 }

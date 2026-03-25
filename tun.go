@@ -126,7 +126,7 @@ func NewTun2ray(config *TunConfig) (*Tun2ray, error) {
 	discardIPv6Func := (func() bool)(nil)
 	if config.DiscardIPv6BasedOnNetwork {
 		discardIPv6Func = func() bool {
-			return discardIPv6.Load()
+			return discardIPv6
 		}
 	}
 
