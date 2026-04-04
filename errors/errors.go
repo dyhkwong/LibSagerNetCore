@@ -57,7 +57,7 @@ func (err *Error) pkgPath() string {
 		return ""
 	}
 	path := reflect.TypeOf(err.pathObj).PkgPath()
-	path = strings.TrimPrefix(path, "github.com/dyhkwong/libsagernetcore")
+	path = strings.TrimPrefix(path, "github.com/dyhkwong/")
 	return path
 }
 

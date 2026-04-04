@@ -19,10 +19,8 @@ package gvisor
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"net"
-	"strconv"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
 	v2rayNet "github.com/v2fly/v2ray-core/v5/common/net"
@@ -44,20 +42,16 @@ func gUdpHandler(s *stack.Stack, handler tun.Handler) {
 			// Malformed packet.
 			return true
 		}
-
-		srcAddr := net.JoinHostPort(id.RemoteAddress.String(), strconv.Itoa(int(id.RemotePort)))
-		src, err := v2rayNet.ParseDestination(fmt.Sprint("udp:", srcAddr))
-		if err != nil {
-			log.Print("[UDP] parse source address ", srcAddr, " failed: ", err)
-			return true
+		src := v2rayNet.Destination{
+			Address: v2rayNet.IPAddress(id.RemoteAddress.AsSlice()),
+			Port:    v2rayNet.Port(id.RemotePort),
+			Network: v2rayNet.Network_UDP,
 		}
-		dstAddr := net.JoinHostPort(id.LocalAddress.String(), strconv.Itoa(int(id.LocalPort)))
-		dst, err := v2rayNet.ParseDestination(fmt.Sprint("udp:", dstAddr))
-		if err != nil {
-			log.Print("[UDP] parse destination address ", dstAddr, " failed: ", err)
-			return true
+		dst := v2rayNet.Destination{
+			Address: v2rayNet.IPAddress(id.LocalAddress.AsSlice()),
+			Port:    v2rayNet.Port(id.LocalPort),
+			Network: v2rayNet.Network_UDP,
 		}
-
 		data := buffer.Data().AsRange().ToView().AsSlice()
 		packet := &gUdpPacket{
 			s:                   s,

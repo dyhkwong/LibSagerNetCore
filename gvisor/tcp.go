@@ -18,10 +18,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package gvisor
 
 import (
-	"fmt"
-	"log"
-	"net"
-	"strconv"
 	"time"
 
 	v2rayNet "github.com/v2fly/v2ray-core/v5/common/net"
@@ -40,23 +36,21 @@ func gTcpHandler(s *stack.Stack, handler tun.Handler) {
 		waitQueue := new(waiter.Queue)
 		endpoint, errT := request.CreateEndpoint(waitQueue)
 		if errT != nil {
-			log.Print("failed to create TCP connection: ", errT.String())
+			newError("failed to create TCP connection").Base(newError(errT.String())).AtError().WriteToLog()
 			// prevent potential half-open TCP connection leak.
 			request.Complete(true)
 			return
 		}
 		request.Complete(false)
-		srcAddr := net.JoinHostPort(id.RemoteAddress.String(), strconv.Itoa(int(id.RemotePort)))
-		src, err := v2rayNet.ParseDestination(fmt.Sprint("tcp:", srcAddr))
-		if err != nil {
-			log.Print("[TCP] parse source address ", srcAddr, " failed: ", err)
-			return
+		src := v2rayNet.Destination{
+			Address: v2rayNet.IPAddress(id.RemoteAddress.AsSlice()),
+			Port:    v2rayNet.Port(id.RemotePort),
+			Network: v2rayNet.Network_TCP,
 		}
-		dstAddr := net.JoinHostPort(id.LocalAddress.String(), strconv.Itoa(int(id.LocalPort)))
-		dst, err := v2rayNet.ParseDestination(fmt.Sprint("tcp:", dstAddr))
-		if err != nil {
-			log.Print("[TCP] parse destination address ", dstAddr, " failed: ", err)
-			return
+		dst := v2rayNet.Destination{
+			Address: v2rayNet.IPAddress(id.LocalAddress.AsSlice()),
+			Port:    v2rayNet.Port(id.LocalPort),
+			Network: v2rayNet.Network_TCP,
 		}
 		go handler.NewConnection(src, dst, gTcpConn{endpoint, gonet.NewTCPConn(waitQueue, endpoint)})
 	})

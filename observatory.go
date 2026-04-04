@@ -19,7 +19,6 @@ package libsagernetcore
 
 import (
 	"errors"
-	"log"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/v2fly/v2ray-core/v5/app/observatory"
@@ -77,10 +76,13 @@ func (instance *V2RayInstance) SetStatusUpdateListener(tag string, listener Obse
 			return err
 		}
 		observer.(*observatory.Observer).StatusUpdate = func(result *observatory.OutboundStatus) {
-			status, _ := proto.Marshal(result)
+			status, err := proto.Marshal(result)
+			if err != nil {
+				newError("failed to marshal status").Base(err).AtError().WriteToLog()
+			}
 			err = listener.OnUpdateObservatoryStatus(status)
 			if err != nil {
-				log.Print("failed to send observatory status update: ", err)
+				newError("failed to send observatory status update").Base(err).AtError().WriteToLog()
 			}
 		}
 	}
