@@ -240,7 +240,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 	ctx = session.ContextWithInbound(ctx, ib)
 	ctx = session.ContextWithID(ctx, session.NewID())
 
-	var uid uint16
+	var uid int32
 	var self bool
 	uidDumper, _ := inbound.GetUidDumper()
 
@@ -251,9 +251,9 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 		} else {
 			ipProto = syscall.IPPROTO_UDP
 		}
-		u, err := uidDumper.DumpUid(ipProto, source.Address.IP().String(), int32(source.Port), destination.Address.IP().String(), int32(destination.Port))
+		var err error
+		uid, err = uidDumper.DumpUid(ipProto, source.Address.IP().String(), int32(source.Port), destination.Address.IP().String(), int32(destination.Port))
 		if err == nil {
-			uid = uint16(u)
 			self = int(uid) == os.Getuid()
 			if !self {
 				if packageName, _ := uidDumper.GetPackageName(int32(uid)); len(packageName) == 0 {
@@ -262,7 +262,7 @@ func (t *Tun2ray) NewConnection(source v2rayNet.Destination, destination v2rayNe
 					newError("[TCP (", uid, "/", packageName, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog(errors.ExportIDToError(ctx))
 				}
 			}
-			ib.UID = uint32(uid)
+			ib.UID = uid
 		}
 	}
 
@@ -406,7 +406,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 	ctx = session.ContextWithInbound(ctx, ib)
 	ctx = session.ContextWithID(ctx, session.NewID())
 
-	var uid uint16
+	var uid int32
 	var self bool
 	uidDumper, _ := inbound.GetUidDumper()
 
@@ -417,9 +417,9 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 		} else {
 			ipProto = syscall.IPPROTO_UDP
 		}
-		u, err := uidDumper.DumpUid(ipProto, source.Address.IP().String(), int32(source.Port), destination.Address.IP().String(), int32(destination.Port))
+		var err error
+		uid, err = uidDumper.DumpUid(ipProto, source.Address.IP().String(), int32(source.Port), destination.Address.IP().String(), int32(destination.Port))
 		if err == nil {
-			uid = uint16(u)
 			self = int(uid) == os.Getuid()
 			if !self {
 				if packageName, _ := uidDumper.GetPackageName(int32(uid)); len(packageName) == 0 {
@@ -428,7 +428,7 @@ func (t *Tun2ray) NewPacket(source v2rayNet.Destination, destination v2rayNet.De
 					newError("[UDP (", uid, "/", packageName, ")] ", source.NetAddr(), " ==> ", destination.NetAddr()).AtInfo().WriteToLog(errors.ExportIDToError(ctx))
 				}
 			}
-			ib.UID = uint32(uid)
+			ib.UID = uid
 		}
 	}
 

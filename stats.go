@@ -67,9 +67,9 @@ func (t *Tun2ray) ResetAppTraffics() {
 		return
 	}
 
-	var toDel []uint16
+	var toDel []int32
 	t.appStats.Range(func(key, value interface{}) bool {
-		uid := key.(uint16)
+		uid := key.(int32)
 		toDel = append(toDel, uid)
 		return true
 	})
@@ -86,10 +86,10 @@ func (t *Tun2ray) ReadAppTraffics(listener TrafficListener) error {
 	var stats []*AppStats
 
 	t.appStats.Range(func(key, value interface{}) bool {
-		uid := key.(uint16)
+		uid := key.(int32)
 		stat := value.(*appStats)
 		export := &AppStats{
-			Uid:          int32(uid),
+			Uid:          uid,
 			TcpConn:      stat.tcpConn,
 			UdpConn:      stat.udpConn,
 			TcpConnTotal: int32(stat.tcpConnTotal),
