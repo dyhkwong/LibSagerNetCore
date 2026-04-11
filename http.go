@@ -38,6 +38,8 @@ import (
 type HTTPClient interface {
 	RestrictedTLS()
 	UseSocks5(port int32)
+	UseSocks5WithAuth(port int32, username, password string)
+	UseUDS(path string)
 	KeepAlive()
 	NewRequest() HTTPRequest
 	Close()
@@ -88,6 +90,27 @@ func (c *httpClient) RestrictedTLS() {
 func (c *httpClient) UseSocks5(port int32) {
 	c.transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 		dialer, _ := socks5.NewDialer("socks5h://127.0.0.1:" + strconv.Itoa(int(port)))
+		return dialer.DialContext(ctx, network, addr)
+	}
+}
+
+func (c *httpClient) UseSocks5WithAuth(port int32, username, password string) {
+	url := NewURL("socks5h")
+	url.SetHostPort("127.0.0.1", port)
+	url.SetUsername(username)
+	url.SetPassword(password)
+	c.transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		dialer, _ := socks5.NewDialer(url.GetString())
+		return dialer.DialContext(ctx, network, addr)
+	}
+}
+
+func (c *httpClient) UseUDS(path string) {
+	c.transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		dialer := &socks5.Dialer{
+			ProxyNetwork: "unix",
+			ProxyAddress: path,
+		}
 		return dialer.DialContext(ctx, network, addr)
 	}
 }

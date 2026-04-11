@@ -19,7 +19,6 @@ package libsagernetcore
 
 import (
 	"context"
-	"errors"
 	"net"
 	"net/netip"
 	"strconv"
@@ -28,58 +27,73 @@ import (
 	"github.com/wzshiming/socks5"
 )
 
-func setupStunClient(useSOCKS5, useDNS bool, serverAddress string, socksPort, dnsPort int32) (*stun.Client, error) {
-	if useSOCKS5 {
-		addr, port, err := net.SplitHostPort(serverAddress)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := netip.ParseAddr(addr); err != nil && useDNS {
-			if dnsPort <= 0 {
-				return nil, errors.New("server address is a domain name, but DNS inbound is disabled")
-			}
-			resolver := &net.Resolver{
-				PreferGo: true,
-				Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
-					dialer := new(net.Dialer)
-					return dialer.DialContext(ctx, network, "127.0.0.1:"+strconv.Itoa(int(dnsPort)))
-				},
-			}
-			ips, err := resolver.LookupIP(context.Background(), "ip", addr)
-			if err != nil {
-				return nil, err
-			}
-			serverAddress = net.JoinHostPort(ips[0].String(), port)
-		}
-		dialer, _ := socks5.NewDialer("socks5h://127.0.0.1:" + strconv.Itoa(int(socksPort)))
-		conn, err := dialer.Dial("udp", serverAddress)
-		if err != nil {
-			return nil, err
-		}
-		client := stun.NewClientWithConnection(conn.(*socks5.UDPConn))
-		client.SetServerAddr(serverAddress)
-		return client, nil
-	} else {
-		client := stun.NewClient()
-		client.SetServerAddr(serverAddress)
-		return client, nil
+type STUNClient interface {
+	UseSocks5(port int32)
+	UseSocks5WithAuth(port int32, username, password string)
+	UseDNS(dnsPort int32)
+	StunTest(serverAddress string) *StunResult
+	StunLegacyTest(serverAddress string) *StunLegacyResult
+}
+
+type stunClient struct {
+	resolver *net.Resolver
+	dialer   func(ctx context.Context, network, address string) (net.PacketConn, error)
+}
+
+func NewStunClient() STUNClient {
+	listener := new(net.ListenConfig)
+	return &stunClient{
+		resolver: new(net.Resolver),
+		dialer: func(ctx context.Context, network, address string) (net.PacketConn, error) {
+			return listener.ListenPacket(ctx, "udp", "[::]:0")
+		},
 	}
 }
 
-type StunResult struct {
-	NatMapping   string
-	NatFiltering string
-	Error        string
+func (c *stunClient) UseSocks5(port int32) {
+	dialer, _ := socks5.NewDialer("socks5h://127.0.0.1:" + strconv.Itoa(int(port)))
+	c.dialer = func(ctx context.Context, network, address string) (net.PacketConn, error) {
+		conn, err := dialer.DialContext(ctx, network, address)
+		if err != nil {
+			return nil, err
+		}
+		return conn.(*socks5.UDPConn), nil
+	}
 }
 
-// RFC 5780
-func StunTest(serverAddress string, useSOCKS5, useDNS bool, socksPort, dnsPort int32) *StunResult {
+func (c *stunClient) UseSocks5WithAuth(port int32, username, password string) {
+	url := NewURL("socks5h")
+	url.SetHostPort("127.0.0.1", port)
+	url.SetUsername(username)
+	url.SetPassword(password)
+	dialer, _ := socks5.NewDialer(url.GetString())
+	c.dialer = func(ctx context.Context, network, address string) (net.PacketConn, error) {
+		conn, err := dialer.DialContext(ctx, network, address)
+		if err != nil {
+			return nil, err
+		}
+		return conn.(*socks5.UDPConn), nil
+	}
+}
+
+func (c *stunClient) UseDNS(dnsPort int32) {
+	dialer := new(net.Dialer)
+	c.resolver.PreferGo = true
+	c.resolver.Dial = func(ctx context.Context, network, _ string) (net.Conn, error) {
+		return dialer.DialContext(ctx, network, "127.0.0.1:"+strconv.Itoa(int(dnsPort)))
+	}
+}
+
+func (c *stunClient) StunTest(serverAddress string) *StunResult {
 	result := new(StunResult)
-	client, err := setupStunClient(useSOCKS5, useDNS, serverAddress, socksPort, dnsPort)
+	packetConn, err := c.listen(context.Background(), serverAddress)
 	if err != nil {
 		result.Error = err.Error()
 		return result
 	}
+	defer packetConn.Close()
+	client := stun.NewClientWithConnection(packetConn)
+	client.SetServerAddr(serverAddress)
 	natBehavior, err := client.BehaviorTest()
 	if err != nil {
 		result.Error = err.Error()
@@ -91,20 +105,16 @@ func StunTest(serverAddress string, useSOCKS5, useDNS bool, socksPort, dnsPort i
 	return result
 }
 
-type StunLegacyResult struct {
-	NatType string
-	Host    string
-	Error   string
-}
-
-// RFC 3489
-func StunLegacyTest(serverAddress string, useSOCKS5, useDNS bool, socksPort, dnsPort int32) *StunLegacyResult {
+func (c *stunClient) StunLegacyTest(serverAddress string) *StunLegacyResult {
 	result := new(StunLegacyResult)
-	client, err := setupStunClient(useSOCKS5, useDNS, serverAddress, socksPort, dnsPort)
+	packetConn, err := c.listen(context.Background(), serverAddress)
 	if err != nil {
 		result.Error = err.Error()
 		return result
 	}
+	defer packetConn.Close()
+	client := stun.NewClientWithConnection(packetConn)
+	client.SetServerAddr(serverAddress)
 	natType, host, err := client.Discover()
 	if err != nil {
 		result.Error = err.Error()
@@ -116,4 +126,31 @@ func StunLegacyTest(serverAddress string, useSOCKS5, useDNS bool, socksPort, dns
 		result.NatType = natType.String()
 	}
 	return result
+}
+
+func (c *stunClient) listen(ctx context.Context, serverAddress string) (net.PacketConn, error) {
+	addr, port, err := net.SplitHostPort(serverAddress)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := netip.ParseAddr(serverAddress); err != nil {
+		ips, err := c.resolver.LookupIP(ctx, "ip", addr)
+		if err != nil {
+			return nil, err
+		}
+		serverAddress = net.JoinHostPort(ips[0].String(), port)
+	}
+	return c.dialer(ctx, "udp", serverAddress)
+}
+
+type StunResult struct {
+	NatMapping   string
+	NatFiltering string
+	Error        string
+}
+
+type StunLegacyResult struct {
+	NatType string
+	Host    string
+	Error   string
 }

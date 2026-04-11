@@ -54,11 +54,23 @@ type CertProbeResult struct {
 	Error       string
 }
 
-func ProbeCertTLS(ctx context.Context, address, sni string, alpn []string, useSOCKS5 bool, socksPort int) ([]*x509.Certificate, error) {
+func ProbeCertTLS(ctx context.Context, address, sni string, alpn []string, useSOCKS5 bool, socksPort int, username, password string, useUDS bool, udsPath string) ([]*x509.Certificate, error) {
 	var conn net.Conn
 	var err error
-	if useSOCKS5 {
-		dialer, _ := socks5.NewDialer("socks5h://127.0.0.1:" + strconv.Itoa(socksPort))
+	if useUDS {
+		dialer := &socks5.Dialer{
+			ProxyNetwork: "unix",
+			ProxyAddress: udsPath,
+		}
+		conn, err = dialer.DialContext(ctx, "tcp", address)
+	} else if useSOCKS5 {
+		url := NewURL("socks5h")
+		url.SetHostPort("127.0.0.1", int32(socksPort))
+		if len(username) > 0 && len(password) > 0 {
+			url.SetUsername(username)
+			url.SetPassword(password)
+		}
+		dialer, _ := socks5.NewDialer(url.GetString())
 		conn, err = dialer.DialContext(ctx, "tcp", address)
 	} else {
 		dialer := new(net.Dialer)
@@ -93,12 +105,18 @@ func (a *udpAddr) String() string {
 	return a.address
 }
 
-func ProbeCertQUIC(ctx context.Context, address, sni string, alpn []string, useSOCKS5 bool, socksPort int) ([]*x509.Certificate, error) {
+func ProbeCertQUIC(ctx context.Context, address, sni string, alpn []string, useSOCKS5 bool, socksPort int, username, password string) ([]*x509.Certificate, error) {
 	var packetConn net.PacketConn
 	var addr net.Addr
 	var err error
 	if useSOCKS5 {
-		dialer, _ := socks5.NewDialer("socks5h://127.0.0.1:" + strconv.Itoa(socksPort))
+		url := NewURL("socks5h")
+		url.SetHostPort("127.0.0.1", int32(socksPort))
+		if len(username) > 0 && len(password) > 0 {
+			url.SetUsername(username)
+			url.SetPassword(password)
+		}
+		dialer, _ := socks5.NewDialer(url.GetString())
 		conn, err := dialer.DialContext(ctx, "udp", address)
 		if err != nil {
 			return nil, err
@@ -129,7 +147,10 @@ func ProbeCertQUIC(ctx context.Context, address, sni string, alpn []string, useS
 	return quicConn.ConnectionState().TLS.PeerCertificates, nil
 }
 
-func ProbeCert(host string, port int32, sni, alpn string, protocol string, useSOCKS5 bool, socksPort int32) *CertProbeResult {
+func ProbeCert(host string, port int32, sni, alpn string, protocol string, useSOCKS5 bool, socksPort int32, username, password string, useUDS bool, udsPath string) *CertProbeResult {
+	if useSOCKS5 == true && useUDS == true {
+		panic("invalid")
+	}
 	if len(host) == 0 {
 		return &CertProbeResult{
 			Error: "empty host",
@@ -147,9 +168,14 @@ func ProbeCert(host string, port int32, sni, alpn string, protocol string, useSO
 	var err error
 	switch protocol {
 	case "tls":
-		certs, err = ProbeCertTLS(ctx, address, sni, nextProto, useSOCKS5, int(socksPort))
+		certs, err = ProbeCertTLS(ctx, address, sni, nextProto, useSOCKS5, int(socksPort), username, password, useUDS, udsPath)
 	case "quic":
-		certs, err = ProbeCertQUIC(ctx, address, sni, nextProto, useSOCKS5, int(socksPort))
+		if useUDS {
+			return &CertProbeResult{
+				Error: "SOCKS inbound is disabled",
+			}
+		}
+		certs, err = ProbeCertQUIC(ctx, address, sni, nextProto, useSOCKS5, int(socksPort), username, password)
 	default:
 		panic("unknown protocol: " + protocol)
 	}
