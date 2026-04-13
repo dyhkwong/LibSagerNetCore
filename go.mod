@@ -6,7 +6,7 @@ require (
 	github.com/ccding/go-stun v0.1.5
 	github.com/golang/protobuf v1.5.4
 	github.com/quic-go/quic-go v0.59.0
-	github.com/v2fly/v2ray-core/v5 v5.48.0
+	github.com/v2fly/v2ray-core/v5 v5.49.0
 	github.com/wzshiming/socks5 v0.7.0
 	golang.org/x/mobile v0.0.0-20260410095206-2cfb76559b7b
 	golang.org/x/sys v0.43.0
@@ -71,7 +71,7 @@ require (
 )
 
 replace (
-	github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.48.1-0.20260411021354-de63c9919409
+	github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.49.1-0.20260413175856-0a75b0df4fd3
 	// workaround https://github.com/google/gvisor/commit/868dfbce4fd59f03145e2bc5ac0b585917c371fa
 	gvisor.dev/gvisor => gvisor.dev/gvisor v0.0.0-20250429202743-3a608a52255d
 )
