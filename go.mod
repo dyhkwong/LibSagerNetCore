@@ -7,7 +7,6 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/quic-go/quic-go v0.59.0
 	github.com/v2fly/v2ray-core/v5 v5.49.0
-	github.com/wzshiming/socks5 v0.7.0
 	golang.org/x/mobile v0.0.0-20260410095206-2cfb76559b7b
 	golang.org/x/sys v0.43.0
 	gvisor.dev/gvisor v0.0.0-20250503011706-39ed1f5ac29c

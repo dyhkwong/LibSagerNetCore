@@ -21,66 +21,58 @@ import (
 	"context"
 	"net"
 	"net/netip"
-	"strconv"
 
 	"github.com/ccding/go-stun/stun"
-	"github.com/wzshiming/socks5"
+
+	v2rayNet "github.com/v2fly/v2ray-core/v5/common/net"
 )
 
 type STUNClient interface {
-	UseSocks5(port int32)
-	UseSocks5WithAuth(port int32, username, password string)
-	UseDNS(dnsPort int32)
+	UseUDS(path string)
+	UseDNS(path string)
 	StunTest(serverAddress string) *StunResult
 	StunLegacyTest(serverAddress string) *StunLegacyResult
 }
 
+var _ STUNClient = (*stunClient)(nil)
+
 type stunClient struct {
 	resolver *net.Resolver
-	dialer   func(ctx context.Context, network, address string) (net.PacketConn, error)
+	listener func(ctx context.Context, network, address string) (net.PacketConn, error)
 }
 
 func NewStunClient() STUNClient {
 	listener := new(net.ListenConfig)
 	return &stunClient{
 		resolver: new(net.Resolver),
-		dialer: func(ctx context.Context, network, address string) (net.PacketConn, error) {
-			return listener.ListenPacket(ctx, "udp", "[::]:0")
+		listener: func(ctx context.Context, network, address string) (net.PacketConn, error) {
+			return listener.ListenPacket(ctx, network, "[::]:0")
 		},
 	}
 }
 
-func (c *stunClient) UseSocks5(port int32) {
-	dialer, _ := socks5.NewDialer("socks5h://127.0.0.1:" + strconv.Itoa(int(port)))
-	c.dialer = func(ctx context.Context, network, address string) (net.PacketConn, error) {
-		conn, err := dialer.DialContext(ctx, network, address)
+func (c *stunClient) UseUDS(path string) {
+	c.listener = func(ctx context.Context, network, address string) (net.PacketConn, error) {
+		dest, err := v2rayNet.ParseDestination(network + ":" + address)
 		if err != nil {
 			return nil, err
 		}
-		return conn.(*socks5.UDPConn), nil
-	}
-}
-
-func (c *stunClient) UseSocks5WithAuth(port int32, username, password string) {
-	url := NewURL("socks5h")
-	url.SetHostPort("127.0.0.1", port)
-	url.SetUsername(username)
-	url.SetPassword(password)
-	dialer, _ := socks5.NewDialer(url.GetString())
-	c.dialer = func(ctx context.Context, network, address string) (net.PacketConn, error) {
-		conn, err := dialer.DialContext(ctx, network, address)
+		dialer := new(net.Dialer)
+		unixConn, err := dialer.DialContext(ctx, "unix", path)
 		if err != nil {
 			return nil, err
 		}
-		return conn.(*socks5.UDPConn), nil
+		packetConn := newIPCPacketConn(unixConn, dest)
+		packetConn.alwaysNetUDPAddr = true
+		return packetConn, nil
 	}
 }
 
-func (c *stunClient) UseDNS(dnsPort int32) {
+func (c *stunClient) UseDNS(path string) {
 	dialer := new(net.Dialer)
 	c.resolver.PreferGo = true
 	c.resolver.Dial = func(ctx context.Context, network, _ string) (net.Conn, error) {
-		return dialer.DialContext(ctx, network, "127.0.0.1:"+strconv.Itoa(int(dnsPort)))
+		return dialer.DialContext(ctx, "unix", path)
 	}
 }
 
@@ -140,7 +132,7 @@ func (c *stunClient) listen(ctx context.Context, serverAddress string) (net.Pack
 		}
 		serverAddress = net.JoinHostPort(ips[0].String(), port)
 	}
-	return c.dialer(ctx, "udp", serverAddress)
+	return c.listener(ctx, "udp", serverAddress)
 }
 
 type StunResult struct {

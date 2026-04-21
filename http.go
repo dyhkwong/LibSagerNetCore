@@ -28,17 +28,14 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"sync"
 
 	"github.com/v2fly/v2ray-core/v5/common/buf"
-	"github.com/wzshiming/socks5"
+	v2rayNet "github.com/v2fly/v2ray-core/v5/common/net"
 )
 
 type HTTPClient interface {
 	RestrictedTLS()
-	UseSocks5(port int32)
-	UseSocks5WithAuth(port int32, username, password string)
 	UseUDS(path string)
 	KeepAlive()
 	NewRequest() HTTPRequest
@@ -87,31 +84,18 @@ func (c *httpClient) RestrictedTLS() {
 	c.tls.MinVersion = tls.VersionTLS13
 }
 
-func (c *httpClient) UseSocks5(port int32) {
-	c.transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-		dialer, _ := socks5.NewDialer("socks5h://127.0.0.1:" + strconv.Itoa(int(port)))
-		return dialer.DialContext(ctx, network, addr)
-	}
-}
-
-func (c *httpClient) UseSocks5WithAuth(port int32, username, password string) {
-	url := NewURL("socks5h")
-	url.SetHostPort("127.0.0.1", port)
-	url.SetUsername(username)
-	url.SetPassword(password)
-	c.transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-		dialer, _ := socks5.NewDialer(url.GetString())
-		return dialer.DialContext(ctx, network, addr)
-	}
-}
-
 func (c *httpClient) UseUDS(path string) {
 	c.transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-		dialer := &socks5.Dialer{
-			ProxyNetwork: "unix",
-			ProxyAddress: path,
+		dest, err := v2rayNet.ParseDestination(network + ":" + addr)
+		if err != nil {
+			return nil, err
 		}
-		return dialer.DialContext(ctx, network, addr)
+		dialer := new(net.Dialer)
+		unixConn, err := dialer.DialContext(ctx, "unix", path)
+		if err != nil {
+			return nil, err
+		}
+		return newIPCConn(unixConn, dest), nil
 	}
 }
 
