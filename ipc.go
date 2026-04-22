@@ -28,10 +28,6 @@ import (
 	"github.com/v2fly/v2ray-core/v5/common/protocol"
 )
 
-// ipcConn is Trojan protocol TCP (without TLS) using Unix Domain Socket.
-// ipcPacketConn is Trojan protocol UDP over TCP (without TLS) using Unix Domain Socket.
-// They are for IPC purposes.
-
 var (
 	_ net.Conn       = (*ipcConn)(nil)
 	_ net.PacketConn = (*ipcPacketConn)(nil)
@@ -60,18 +56,8 @@ func newIPCConn(conn net.Conn, dest v2rayNet.Destination) *ipcConn {
 func (c *ipcConn) writeHeader(command byte) (int, error) {
 	buffer := buf.StackNew()
 	defer buffer.Release()
-	buffer.Write([]byte{
-		0x64, 0x31, 0x34, 0x61, 0x30, 0x32, 0x38, 0x63, 0x32, 0x61,
-		0x33, 0x61, 0x32, 0x62, 0x63, 0x39, 0x34, 0x37, 0x36, 0x31,
-		0x30, 0x32, 0x62, 0x62, 0x32, 0x38, 0x38, 0x32, 0x33, 0x34,
-		0x63, 0x34, 0x31, 0x35, 0x61, 0x32, 0x62, 0x30, 0x31, 0x66,
-		0x38, 0x32, 0x38, 0x65, 0x61, 0x36, 0x32, 0x61, 0x63, 0x35,
-		0x62, 0x33, 0x65, 0x34, 0x32, 0x66, // all zeros
-	})
-	buffer.Write([]byte{'\r', '\n'})
 	buffer.WriteByte(command)
 	addrParser.WriteAddressPort(&buffer, c.dest.Address, c.dest.Port)
-	buffer.Write([]byte{'\r', '\n'})
 	return c.Conn.Write(buffer.Bytes())
 }
 
@@ -102,22 +88,12 @@ func (c *ipcPacketConn) ReadFrom(p []byte) (int, net.Addr, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	if addr.Family().IsDomain() && c.alwaysNetUDPAddr {
-		return 0, nil, os.ErrInvalid
-	}
 	var b [2]byte
 	_, err = c.Read(b[:])
 	if err != nil {
 		return 0, nil, err
 	}
 	length := min(int(binary.BigEndian.Uint16(b[:])), len(p))
-	_, err = c.Read(b[:])
-	if err != nil {
-		return 0, nil, err
-	}
-	if b[0] != '\r' || b[1] != '\n' {
-		return 0, nil, os.ErrInvalid
-	}
 	_, err = io.ReadFull(c, p[:length])
 	if err != nil {
 		return 0, nil, err
@@ -127,6 +103,9 @@ func (c *ipcPacketConn) ReadFrom(p []byte) (int, net.Addr, error) {
 			IP:   addr.IP(),
 			Port: int(port),
 		}, nil
+	}
+	if addr.Family().IsDomain() && c.alwaysNetUDPAddr {
+		return 0, nil, os.ErrInvalid
 	}
 	return length, &udpAddr{
 		address: net.JoinHostPort(addr.Domain(), port.String()),
@@ -149,7 +128,7 @@ func (c *ipcPacketConn) WriteTo(p []byte, addr net.Addr) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	_, err = c.Conn.Write([]byte{byte(len(p) >> 8), byte(len(p)), '\r', '\n'})
+	_, err = c.Conn.Write([]byte{byte(len(p) >> 8), byte(len(p))})
 	if err != nil {
 		return 0, err
 	}

@@ -29,7 +29,7 @@ import (
 
 type STUNClient interface {
 	UseUDS(path string)
-	UseDNS(path string)
+	UseDNSUDS(path string)
 	StunTest(serverAddress string) *StunResult
 	StunLegacyTest(serverAddress string) *StunLegacyResult
 }
@@ -68,7 +68,7 @@ func (c *stunClient) UseUDS(path string) {
 	}
 }
 
-func (c *stunClient) UseDNS(path string) {
+func (c *stunClient) UseDNSUDS(path string) {
 	dialer := new(net.Dialer)
 	c.resolver.PreferGo = true
 	c.resolver.Dial = func(ctx context.Context, network, _ string) (net.Conn, error) {
