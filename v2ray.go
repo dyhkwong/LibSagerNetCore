@@ -294,13 +294,7 @@ func (c *dispatcherConn) handleInput() {
 				Source:  c.dest,
 			}
 			if buffer.Endpoint != nil {
-				source := *buffer.Endpoint
-				if source.Address.Family().IsDomain() {
-					newError("panic prevented, source: ", source.Address.Domain()).AtError().WriteToLog()
-				} else {
-					packet.Source = source
-				}
-				
+				packet.Source = *buffer.Endpoint
 			}
 			select {
 			case c.cache <- packet:
