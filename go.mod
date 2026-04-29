@@ -18,13 +18,13 @@ require (
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/andybalholm/brotli v1.0.6 // indirect
 	github.com/anytls/sing-anytls v0.0.11 // indirect
-	github.com/apernet/quic-go v0.59.1-0.20260330051153-c402ee641eb6 // indirect
+	github.com/apernet/quic-go v0.59.1-0.20260425001925-6c6cc9bcb716 // indirect
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
-	github.com/dyhkwong/hysteria/core/v2 v2.8.1-1 // indirect
-	github.com/dyhkwong/hysteria/extras/v2 v2.8.1-1 // indirect
+	github.com/dyhkwong/hysteria/core/v2 v2.8.2-2 // indirect
+	github.com/dyhkwong/hysteria/extras/v2 v2.8.2-2 // indirect
 	github.com/dyhkwong/sing-juicity v0.1.2 // indirect
-	github.com/enfein/mieru/v3 v3.31.0 // indirect
+	github.com/enfein/mieru/v3 v3.32.0 // indirect
 	github.com/gofrs/uuid/v5 v5.4.0 // indirect
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259 // indirect
 	github.com/google/btree v1.1.3 // indirect
@@ -71,7 +71,7 @@ require (
 )
 
 replace (
-	github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.49.1-0.20260422211757-f5566918c9ab
+	github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.49.1-0.20260429011935-e05e448ae3f3
 	// workaround https://github.com/google/gvisor/commit/868dfbce4fd59f03145e2bc5ac0b585917c371fa
 	gvisor.dev/gvisor => gvisor.dev/gvisor v0.0.0-20250429202743-3a608a52255d
 )
