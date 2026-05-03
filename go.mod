@@ -21,8 +21,8 @@ require (
 	github.com/apernet/quic-go v0.59.1-0.20260425001925-6c6cc9bcb716 // indirect
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
-	github.com/dyhkwong/hysteria/core/v2 v2.8.2-2 // indirect
-	github.com/dyhkwong/hysteria/extras/v2 v2.8.2-2 // indirect
+	github.com/dyhkwong/hysteria/core/v2 v2.8.2-3 // indirect
+	github.com/dyhkwong/hysteria/extras/v2 v2.8.2-3 // indirect
 	github.com/dyhkwong/sing-juicity v0.1.2 // indirect
 	github.com/enfein/mieru/v3 v3.32.0 // indirect
 	github.com/gofrs/uuid/v5 v5.4.0 // indirect
@@ -71,7 +71,7 @@ require (
 )
 
 replace (
-	github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.49.1-0.20260429195609-fcaef408a887
+	github.com/v2fly/v2ray-core/v5 => github.com/dyhkwong/v2ray-core/v5 v5.49.1-0.20260503015333-5db9da2190f0
 	// workaround https://github.com/google/gvisor/commit/868dfbce4fd59f03145e2bc5ac0b585917c371fa
 	gvisor.dev/gvisor => gvisor.dev/gvisor v0.0.0-20250429202743-3a608a52255d
 )
