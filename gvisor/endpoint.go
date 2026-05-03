@@ -62,7 +62,7 @@ func (e *linkEndpointWithDiscard) DeliverNetworkPacket(protocol tcpip.NetworkPro
 		}
 		if e.discardICMP || discardIPv6 {
 			hdr := header.IPv6(packet)
-			if e.discardICMP && hdr.TransportProtocol() == header.ICMPv4ProtocolNumber {
+			if e.discardICMP && hdr.TransportProtocol() == header.ICMPv6ProtocolNumber {
 				newError("discarded ICMPv6 to ", hdr.DestinationAddress()).AtInfo().WriteToLog()
 				return
 			}
