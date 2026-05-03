@@ -37,14 +37,14 @@ type linkEndpointWithDiscard struct {
 
 func (e *linkEndpointWithDiscard) Attach(dispatcher stack.NetworkDispatcher) {
 	e.dispatcher = dispatcher
+	if dispatcher == nil {
+		e.LinkEndpoint.Attach(nil)
+		return
+	}
 	e.LinkEndpoint.Attach(e)
 }
 
 func (e *linkEndpointWithDiscard) DeliverNetworkPacket(protocol tcpip.NetworkProtocolNumber, pkt *stack.PacketBuffer) {
-	dispatcher := e.dispatcher
-	if dispatcher == nil {
-		return
-	}
 	packet := pkt.Data().AsRange().ToSlice()
 	switch protocol {
 	case header.IPv4ProtocolNumber:
@@ -72,9 +72,13 @@ func (e *linkEndpointWithDiscard) DeliverNetworkPacket(protocol tcpip.NetworkPro
 			}
 		}
 	}
+	dispatcher := e.dispatcher
+	if dispatcher == nil {
+		return
+	}
 	dispatcher.DeliverNetworkPacket(protocol, pkt)
 }
 
-func (e *linkEndpointWithDiscard) DeliverLinkPacket(protocol tcpip.NetworkProtocolNumber, pkt *stack.PacketBuffer) {
+func (e *linkEndpointWithDiscard) DeliverLinkPacket(_ tcpip.NetworkProtocolNumber, _ *stack.PacketBuffer) {
 	panic("unimplemented")
 }
