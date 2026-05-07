@@ -1,6 +1,6 @@
 module github.com/dyhkwong/libsagernetcore
 
-go 1.25.0
+go 1.26
 
 require (
 	github.com/ccding/go-stun v0.1.5

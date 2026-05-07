@@ -23,8 +23,7 @@ import (
 	"strings"
 )
 
-// Do not return ([]byte, error) until Go 1.26
-func PemToDer(input string) []byte {
+func PemToDer(input string) ([]byte, error) {
 	var der []byte
 	data := []byte(input)
 	for {
@@ -36,19 +35,18 @@ func PemToDer(input string) []byte {
 			continue
 		}
 		if _, err := x509.ParseCertificate(block.Bytes); err != nil {
-			return nil
+			return nil, err
 		}
 		der = append(der, block.Bytes...)
 		data = rest
 	}
-	return der
+	return der, nil
 }
 
-// Do not return (string, error) until Go 1.26
-func DerToPem(input []byte) string {
+func DerToPem(input []byte) (string, error) {
 	certs, err := x509.ParseCertificates(input)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	var builder strings.Builder
 	for _, cert := range certs {
@@ -56,8 +54,8 @@ func DerToPem(input []byte) string {
 			Type:  "CERTIFICATE",
 			Bytes: cert.Raw,
 		}); err != nil {
-			return ""
+			return "", err
 		}
 	}
-	return builder.String()
+	return builder.String(), nil
 }

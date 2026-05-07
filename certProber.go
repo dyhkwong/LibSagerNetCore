@@ -288,11 +288,11 @@ func CertificateToPrettyInfo(input string) (string, error) {
 		}
 		certInfo.WriteString("  Not Before: " + cert.NotBefore.Local().Format(time.RFC3339) + "\n\n")
 		certInfo.WriteString("  Not After: " + cert.NotAfter.Local().Format(time.RFC3339) + "\n\n")
-		certInfo.WriteString("  Key Usage: " + keyUsageToString(cert.KeyUsage) + "\n\n")
+		certInfo.WriteString("  Key Usage: " + cert.KeyUsage.String() + "\n\n")
 		if len(cert.ExtKeyUsage) > 0 {
 			extKeyUsages := make([]string, len(cert.ExtKeyUsage))
 			for i, extKeyUsage := range cert.ExtKeyUsage {
-				extKeyUsages[i] = extKeyUsageToString(extKeyUsage)
+				extKeyUsages[i] = extKeyUsage.String()
 			}
 			certInfo.WriteString("  Extended Key Usage: " + strings.Join(extKeyUsages, ",") + "\n\n")
 		}
